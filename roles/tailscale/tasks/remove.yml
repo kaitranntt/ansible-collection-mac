@@ -1,0 +1,70 @@
+---
+# Tailscale removal tasks
+
+- name: Stop Tailscale service
+  ansible.builtin.command: launchctl stop com.tailscale.tailscaled
+  become: true
+  register: tailscale_service_stop
+  changed_when: tailscale_service_stop.rc == 0
+  failed_when: false
+
+- name: Disable Tailscale service at boot
+  ansible.builtin.command: launchctl disable system/com.tailscale.tailscaled
+  become: true
+  register: tailscale_service_disable
+  changed_when: tailscale_service_disable.rc == 0
+  failed_when: false
+
+- name: Unload Tailscale LaunchDaemon
+  community.general.launchd:
+    name: com.tailscale.tailscaled
+    state: stopped
+    enabled: false
+  become: true
+  failed_when: false
+
+- name: Remove Tailscale LaunchDaemon plist
+  ansible.builtin.file:
+    path: "{{ tailscale_service_plist_path }}"
+    state: absent
+  become: true
+
+- name: Remove Tailscale binaries
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  loop:
+    - "{{ tailscale_cli_path }}"
+    - "{{ tailscale_daemon_path }}"
+
+- name: Remove Tailscale socket directory
+  ansible.builtin.file:
+    path: "{{ tailscale_socket_path | dirname }}"
+    state: absent
+  become: true
+
+- name: Remove Tailscale user
+  ansible.builtin.user:
+    name: "{{ tailscale_user }}"
+    state: absent
+    remove: true
+  become: true
+  failed_when: false
+
+- name: Clean up temporary files
+  ansible.builtin.file:
+    path: "{{ tailscale_temp_dir }}"
+    state: absent
+  when: tailscale_temp_dir is defined
+  failed_when: false
+
+- name: Verify Tailscale removal
+  ansible.builtin.stat:
+    path: "{{ tailscale_cli_path }}"
+  register: tailscale_removed_check
+
+- name: Confirm Tailscale removal
+  ansible.builtin.debug:
+    msg: "Tailscale has been successfully removed"
+  when: not tailscale_removed_check.stat.exists

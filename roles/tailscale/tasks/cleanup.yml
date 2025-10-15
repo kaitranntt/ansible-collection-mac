@@ -1,0 +1,27 @@
+---
+# Cleanup tasks for Tailscale installation
+
+- name: Clean up temporary installation directory
+  ansible.builtin.file:
+    path: "{{ tailscale_temp_dir }}"
+    state: absent
+  when: tailscale_temp_dir is defined
+  failed_when: false
+
+- name: Clean up downloaded files
+  ansible.builtin.file:
+    path: "{{ tailscale_temp_dir }}/tailscale.zip"
+    state: absent
+  when: tailscale_temp_dir is defined
+  failed_when: false
+
+- name: Remove any leftover temporary files
+  ansible.builtin.file:
+    path: "/tmp/tailscale_install_*"
+    state: absent
+  failed_when: false
+  become: true
+
+- name: Display cleanup completion message
+  ansible.builtin.debug:
+    msg: "Temporary files cleaned up successfully"

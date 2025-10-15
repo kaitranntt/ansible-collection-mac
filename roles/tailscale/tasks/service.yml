@@ -1,0 +1,52 @@
+---
+# Tailscale service management tasks
+
+- name: Load Tailscale LaunchDaemon
+  community.general.launchd:
+    name: com.tailscale.tailscaled
+    state: started
+    enabled: "{{ tailscale_enable_service }}"
+  become: true
+  notify:
+    - restart tailscale
+
+- name: Start Tailscale service
+  ansible.builtin.command: launchctl start com.tailscale.tailscaled
+  become: true
+  register: tailscale_service_start
+  changed_when: tailscale_service_start.rc == 0 and 'Service already loaded' not in tailscale_service_start.stderr
+  when: tailscale_start_service
+  notify:
+    - restart tailscale
+
+- name: Enable Tailscale service at boot
+  ansible.builtin.command: launchctl enable system/com.tailscale.tailscaled
+  become: true
+  register: tailscale_service_enable
+  changed_when: tailscale_service_enable.rc == 0
+  when: tailscale_enable_service
+
+- name: Check if Tailscale service is running
+  ansible.builtin.command: launchctl list | grep com.tailscale.tailscaled
+  register: tailscale_service_check
+  changed_when: false
+  failed_when: false
+
+- name: Display Tailscale service status
+  ansible.builtin.debug:
+    msg: "Tailscale service is running"
+  when: tailscale_service_check.rc == 0
+
+- name: Wait for Tailscale service to be ready
+  ansible.builtin.wait_for:
+    path: "{{ tailscale_socket_path }}"
+    timeout: "{{ tailscale_timeout }}"
+  become: true
+  when: tailscale_start_service
+
+- name: Force restart Tailscale if requested
+  ansible.builtin.command: launchctl kickstart -k system/com.tailscale.tailscaled
+  become: true
+  register: tailscale_force_restart_result
+  changed_when: tailscale_force_restart_result.rc == 0
+  when: tailscale_force_restart

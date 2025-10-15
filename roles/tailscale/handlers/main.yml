@@ -1,0 +1,22 @@
+---
+# Handlers for Tailscale role
+
+- name: restart tailscale
+  ansible.builtin.command: launchctl kickstart -k system/com.tailscale.tailscaled
+  become: true
+  listen: "restart tailscale"
+
+- name: load tailscale service
+  ansible.builtin.command: launchctl load -w {{ tailscale_service_plist_path }}
+  become: true
+  listen: "load tailscale service"
+
+- name: stop tailscale
+  ansible.builtin.command: launchctl stop com.tailscale.tailscaled
+  become: true
+  listen: "stop tailscale"
+
+- name: start tailscale
+  ansible.builtin.command: launchctl start com.tailscale.tailscaled
+  become: true
+  listen: "start tailscale"

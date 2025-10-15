@@ -1,0 +1,36 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: delegated
+  options:
+    managed: false
+    ansible_connection_options:
+      ansible_connection: local
+platforms:
+  - name: macos-test
+    groups:
+      - macos
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      callbacks_enabled: profile_tasks
+      timeout: 60
+    ssh_connection:
+      pipelining: false
+  inventory:
+    hosts:
+      macos-test:
+        ansible_connection: local
+        ansible_become: true
+        ansible_python_interpreter: /usr/bin/python3
+verifier:
+  name: ansible
+lint: |
+  set -e
+  yamllint .
+  ansible-lint
+  flake8

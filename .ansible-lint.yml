@@ -1,0 +1,31 @@
+---
+# ansible-lint configuration file
+
+# Exclude paths from linting
+exclude_paths:
+  - .git/
+  - .pytest_cache/
+  - .molecule/
+  - "*.tar.gz"
+
+# Enable specific rules
+warn_list:
+  - '501'  # No 'loops' should be used
+  - '502'  # All tasks should be named
+  - '503'  # Tasks that run when changed should likely be handlers
+  - '504'  # Do not check 'galaxy_info' for versions
+  - '301'  # Commands should not be used in place of modules
+  - '305'  # Use shell only when shell functionality is required
+  - '401'  # Git checkouts must contain explicit version
+  - '403'  # Package installs should not use latest
+  - '404'  # Doesn't need a restart for service
+
+# Custom rules for this collection
+skip_list:
+  - '106'  # Role name {} does not match ``^[a-z][a-z0-9_]+$`` pattern
+  - '208'  # File permissions not mentioned
+
+# Additional configuration
+use_default_rules: true
+offline: false
+strict: true

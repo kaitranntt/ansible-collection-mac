@@ -1,0 +1,29 @@
+---
+namespace: kaitranntt
+name: mac
+version: 1.0.0
+readme: README.md
+authors:
+  - Tam Nhu (Kai) Tran <kaitran.ntt@gmail.com>
+description: Ansible collection for managing macOS systems with a focus on Tailscale installation and configuration
+license:
+  - MIT
+tags:
+  - macos
+  - mac
+  - tailscale
+  - vpn
+  - networking
+  - system
+dependencies: {}
+repository: https://github.com/kaitranntt/ansible-collection-mac
+documentation: https://github.com/kaitranntt/ansible-collection-mac/blob/main/README.md
+homepage: https://github.com/kaitranntt/ansible-collection-mac
+issues: https://github.com/kaitranntt/ansible-collection-mac/issues
+build_ignore:
+  - .git*
+  - .pytest_cache
+  - .molecule
+  - "*.pyc"
+  - __pycache__
+  - "*.tar.gz"

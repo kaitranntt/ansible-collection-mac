@@ -1,0 +1,32 @@
+---
+- name: Destroy
+  hosts: all
+  become: yes
+  gather_facts: yes
+  collections:
+    - kaitranntt.mac
+
+  tasks:
+    - name: Remove Tailscale
+      include_role:
+        name: tailscale
+      vars:
+        tailscale_state: absent
+
+    - name: Verify Tailscale is removed
+      ansible.builtin.stat:
+        path: /usr/local/bin/tailscale
+      register: tailscale_removed
+      failed_when: tailscale_removed.stat.exists
+
+    - name: Verify Tailscaled is removed
+      ansible.builtin.stat:
+        path: /usr/local/bin/tailscaled
+      register: tailscaled_removed
+      failed_when: tailscaled_removed.stat.exists
+
+    - name: Verify LaunchDaemon is removed
+      ansible.builtin.stat:
+        path: /Library/LaunchDaemons/com.tailscale.tailscaled.plist
+      register: tailscale_plist
+      failed_when: tailscale_plist.stat.exists

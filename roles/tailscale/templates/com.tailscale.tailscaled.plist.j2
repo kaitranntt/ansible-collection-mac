@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.tailscale.tailscaled</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{{ tailscale_daemon_path }}</string>
+        <string>--state=/var/db/tailscale/tailscaled.state</string>
+        <string>--socket={{ tailscale_socket_path }}</string>
+        <string>--port=41641</string>
+        {% if tailscale_login_server != "" %}
+        <string>--login-server={{ tailscale_login_server }}</string>
+        {% endif %}
+        {% for arg in tailscale_args %}
+        <string>{{ arg }}</string>
+        {% endfor %}
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>NetworkState</key>
+        <true/>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>{{ tailscale_log_file }}</string>
+    <key>StandardErrorPath</key>
+    <string>{{ tailscale_log_file }}.err</string>
+    <key>WorkingDirectory</key>
+    <string>/var/db/tailscale</string>
+    <key>UserName</key>
+    <string>{{ tailscale_user }}</string>
+    <key>GroupName</key>
+    <string>{{ tailscale_user }}</string>
+    <key>HardResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>65536</integer>
+    </dict>
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>65536</integer>
+    </dict>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/var/db/tailscale</string>
+    </dict>
+</dict>
+</plist>

@@ -1,0 +1,13 @@
+---
+collections:
+  - name: kaitranntt.mac
+    source: ../../..
+    type: git
+
+roles:
+  - name: tailscale
+    src: ../../roles/tailscale
+
+collections:
+  - name: community.general
+    version: ">=6.0.0"
