@@ -28,14 +28,14 @@ repos:
   - id: flake8
     args: [--max-line-length=120, --ignore=E203, W503]
 
-# - repo: https://github.com/adrienverge/yamllint.git
-#   rev: v1.35.1
-#   hooks:
-#   - id: yamllint
-#     args: [-c, .yamllint.yml]
+- repo: https://github.com/adrienverge/yamllint.git
+  rev: v1.35.1
+  hooks:
+  - id: yamllint
+    args: [-c, .yamllint.yml]
 
-# - repo: https://github.com/ansible/ansible-lint
-#   rev: v24.9.2
-#   hooks:
-#   - id: ansible-lint
-#     args: [--config-file=.ansible-lint.yml]
+- repo: https://github.com/ansible/ansible-lint
+  rev: v24.9.2
+  hooks:
+  - id: ansible-lint
+    args: [--config-file=.ansible-lint.yml]
