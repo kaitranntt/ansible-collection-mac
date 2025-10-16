@@ -10,17 +10,17 @@ formatter:
 
 # File patterns to include/exclude
 include:
-- '*.yml'
-- '*.yaml'
+  - '*.yml'
+  - '*.yaml'
 
 exclude:
-- .git/**
-- tests/molecule/**/created/**
-- .molecule/**
-- '*.tar.gz'
-- .pytest_cache/**
-- .cache/**
-- .yamllint.yml
-- .yamlfmt.yml
-- .ansible-lint.yml
-- .pre-commit-config.yaml
+  - .git/**
+  - tests/molecule/**/created/**
+  - .molecule/**
+  - '*.tar.gz'
+  - .pytest_cache/**
+  - .cache/**
+  - .yamllint.yml
+  - .yamlfmt.yml
+  - .ansible-lint.yml
+  - .pre-commit-config.yaml

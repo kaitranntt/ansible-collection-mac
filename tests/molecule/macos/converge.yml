@@ -1,0 +1,88 @@
+---
+- name: Test Tailscale installation on macOS
+  hosts: all
+  gather_facts: true
+  vars:
+    test_results_dir: "/tmp/test-results"
+  tasks:
+    - name: Create test results directory
+      file:
+        path: "{{ test_results_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Record system state before installation
+      copy:
+        dest: "{{ test_results_dir }}/pre-install-state.txt"
+        content: |
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          macOS Version: {{ ansible_distribution_version }}
+          Architecture: {{ ansible_architecture }}
+          Memory: {{ ansible_memtotal_mb }}MB
+          Disk: {{ ansible_mounts[0].size_available | default('unknown') }}
+
+    - name: Include Tailscale role
+      include_role:
+        name: tailscale
+      vars:
+        tailscale_state: "present"
+        tailscale_installation_method: "{{ tailscale_installation_method }}"
+        tailscale_auth_key: "{{ tailscale_authkey }}"
+        tailscale_accept_routes: true
+        tailscale_ssh: true
+        tailscale_start_service: true
+        tailscale_enable_service: true
+        tailscale_log_level: "info"
+        tailscale_create_directories: true
+
+    - name: Wait for Tailscale service to start
+      service_facts:
+      register: service_facts
+
+    - name: Verify Tailscale binary exists
+      stat:
+        path: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}"
+      register: tailscale_binary
+
+    - name: Check Tailscale version
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} version"
+      register: tailscale_version
+      when: tailscale_binary.stat.exists
+
+    - name: Record Tailscale installation details
+      copy:
+        dest: "{{ test_results_dir }}/tailscale-installation.txt"
+        content: |
+          Installation Method: {{ tailscale_installation_method }}
+          Binary Path: {{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}
+          Version: {{ tailscale_version.stdout | default('unknown') }}
+          Installation Time: {{ ansible_date_time.iso8601 }}
+          Service Status: {{ service_facts.ansible_facts | dict2items | selectattr('key', 'search', 'tailscale') | list | default([]) }}
+
+    - name: Test basic Tailscale functionality
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} status"
+      register: tailscale_status
+      failed_when: false
+      when: tailscale_binary.stat.exists
+
+    - name: Record Tailscale status
+      copy:
+        dest: "{{ test_results_dir }}/tailscale-status.txt"
+        content: |
+          Exit Code: {{ tailscale_status.rc }}
+          Output: {{ tailscale_status.stdout | default('no output') }}
+          Error: {{ tailscale_status.stderr | default('no error') }}
+          Timestamp: {{ ansible_date_time.iso8601 }}
+
+    - name: Verify installation success
+      assert:
+        that:
+          - tailscale_binary.stat.exists
+          - tailscale_version is succeeded
+        success_msg: "Tailscale installation completed successfully"
+        fail_msg: "Tailscale installation verification failed"
+
+    - name: Create installation success marker
+      copy:
+        dest: "{{ test_results_dir }}/installation-complete"
+        content: "Tailscale installation completed at {{ ansible_date_time.iso8601 }}"

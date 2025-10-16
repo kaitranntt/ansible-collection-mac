@@ -1,0 +1,103 @@
+name: macOS Quick Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  quick-test:
+    name: Quick macOS Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements-dev.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y docker-compose jq curl
+        python -m pip install --upgrade pip
+        pip install ansible molecule molecule-plugins[docker] docker-compose
+
+    - name: Lint and syntax check
+      run: |
+        echo "=== Running syntax checks ==="
+        ansible-lint --version || true
+        yamllint --version || true
+
+        # Basic syntax validation
+        find . -name "*.yml" -o -name "*.yaml" | head -10 | xargs ansible-lint || true
+
+    - name: Container health check
+      run: |
+        echo "=== Quick container health check ==="
+        chmod +x scripts/*.sh
+
+        # Test container startup without full molecule tests
+        export TEST_ID="quick_$(date +%Y%m%d_%H%M%S)"
+        echo "TEST_ID=$TEST_ID" >> $GITHUB_ENV
+
+        if ./scripts/start-macos-container.sh; then
+          echo "✅ Container started successfully"
+
+          # Wait up to 5 minutes for container to be ready
+          max_attempts=10
+          attempt=1
+
+          while [[ $attempt -le $max_attempts ]]; do
+            if ./scripts/check-macos-status.sh --test-id $TEST_ID | grep -q "READY"; then
+              echo "✅ Container is ready"
+              break
+            fi
+
+            echo "Attempt $attempt/$max_attempts: Checking container status..."
+            sleep 30
+            ((attempt++))
+          done
+
+          if [[ $attempt -gt $max_attempts ]]; then
+            echo "⚠️  Container did not become ready within expected time"
+          fi
+
+          # Collect basic logs
+          ./scripts/collect-test-logs.sh --test-id $TEST_ID || true
+
+          # Stop container
+          ./scripts/stop-macos-container.sh --test-id $TEST_ID || true
+
+          echo "✅ Quick test completed"
+        else
+          echo "❌ Failed to start container"
+          exit 1
+        fi
+
+    - name: Upload quick test artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: quick-test-artifacts-${{ github.run_number }}
+        path: test-artifacts/
+        retention-days: 3

@@ -1,0 +1,103 @@
+---
+- name: Test Tailscale Binary Installation on macOS
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Verify test environment
+    debug:
+      msg: "Testing binary installation on macOS"
+
+  - name: Create test results directory
+    file:
+      path: /tmp/test-results
+      state: directory
+      mode: '0755'
+
+  - name: Record installation attempt start
+    copy:
+      dest: /tmp/test-results/binary-installation-started
+      content: "Binary installation started at {{ ansible_date_time.iso8601 }}"
+
+  - name: Include Tailscale role with binary installation method
+    include_role:
+      name: tailscale
+    vars:
+      tailscale_state: "present"
+      tailscale_installation_method: "binary"
+      tailscale_auth_key: "{{ tailscale_authkey }}"
+
+  - name: Verify Tailscale binary installation
+    block:
+      - name: Check if Tailscale binary exists
+        stat:
+          path: /usr/local/bin/tailscale
+        register: tailscale_binary
+
+      - name: Verify tailscale command is available
+        command: /usr/local/bin/tailscale version
+        register: tailscale_version
+        failed_when: tailscale_version.rc != 0
+
+      - name: Record successful installation
+        copy:
+          dest: /tmp/test-results/binary-installation-success
+          content: |
+            Binary installation successful
+            Version: {{ tailscale_version.stdout_lines | first | default('unknown') }}
+            Completed at: {{ ansible_date_time.iso8601 }}
+
+      - name: Display installation success
+        debug:
+          msg: "✅ Binary installation completed successfully"
+
+    rescue:
+      - name: Record installation failure
+        copy:
+          dest: /tmp/test-results/binary-installation-failed
+          content: |
+            Binary installation failed
+            Error: {{ ansible_failed_result.msg | default('unknown error') }}
+            Completed at: {{ ansible_date_time.iso8601 }}
+
+      - name: Display installation failure
+        debug:
+          msg: "❌ Binary installation failed"
+
+      - name: Fail the playbook
+        fail:
+          msg: "Binary installation verification failed"
+
+  - name: Test basic Tailscale functionality
+    block:
+      - name: Check Tailscale status
+        command: /usr/local/bin/tailscale status
+        register: tailscale_status
+        failed_when: false
+        no_log: true  # May contain sensitive network info
+
+      - name: Test Tailscale command help
+        command: /usr/local/bin/tailscale --help
+        register: tailscale_help
+        failed_when: tailscale_help.rc != 0
+
+      - name: Record functionality test results
+        copy:
+          dest: /tmp/test-results/binary-functionality-test
+          content: |
+            Tailscale status command: {{ 'PASS' if tailscale_status.rc == 0 else 'FAIL' }}
+            Tailscale help command: {{ 'PASS' if tailscale_help.rc == 0 else 'FAIL' }}
+            Tested at: {{ ansible_date_time.iso8601 }}
+
+    always:
+      - name: Create installation summary
+        copy:
+          dest: /tmp/test-results/binary-installation-summary
+          content: |
+            === Binary Installation Test Summary ===
+            Scenario: Binary Installation Method
+            Started: {{ ansible_date_time.iso8601 }}
+            Installation: {{ 'SUCCESS' if tailscale_binary.stat.exists else 'FAILED' }}
+            Version Check: {{ 'SUCCESS' if tailscale_version is defined and tailscale_version.rc == 0 else 'FAILED' }}
+            Status Command: {{ 'SUCCESS' if tailscale_status is defined and tailscale_status.rc == 0 else 'FAILED' }}
+            Help Command: {{ 'SUCCESS' if tailscale_help is defined and tailscale_help.rc == 0 else 'FAILED' }}
+            Overall Result: {{ 'SUCCESS' if (tailscale_binary.stat.exists and tailscale_version is defined and tailscale_version.rc == 0 and tailscale_help is defined and tailscale_help.rc == 0) else 'FAILED' }}

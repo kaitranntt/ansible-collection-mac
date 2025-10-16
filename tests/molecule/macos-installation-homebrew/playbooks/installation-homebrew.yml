@@ -1,0 +1,139 @@
+---
+- name: Test Tailscale Homebrew Installation on macOS
+  hosts: all
+  gather_facts: false
+  tasks:
+  - name: Verify test environment
+    debug:
+      msg: "Testing Homebrew installation on macOS"
+
+  - name: Create test results directory
+    file:
+      path: /tmp/test-results
+      state: directory
+      mode: '0755'
+
+  - name: Record installation attempt start
+    copy:
+      dest: /tmp/test-results/homebrew-installation-started
+      content: "Homebrew installation started at {{ ansible_date_time.iso8601 }}"
+
+  - name: Check if Homebrew is available
+    command: which brew
+    register: homebrew_check
+    failed_when: false
+
+  - name: Record Homebrew availability
+    copy:
+      dest: /tmp/test-results/homebrew-availability
+      content: |
+        Homebrew available: {{ 'YES' if homebrew_check.rc == 0 else 'NO' }}
+        Check completed at: {{ ansible_date_time.iso8601 }}
+
+  - name: Include Tailscale role with Homebrew installation method
+    include_role:
+      name: tailscale
+    vars:
+      tailscale_state: "present"
+      tailscale_installation_method: "homebrew"
+      tailscale_auth_key: "{{ tailscale_authkey }}"
+
+  - name: Verify Tailscale Homebrew installation
+    block:
+      - name: Check if Tailscale was installed via Homebrew
+        command: brew list tailscale
+        register: tailscale_brew_list
+        failed_when: false
+
+      - name: Check if Tailscale binary exists
+        stat:
+          path: /opt/homebrew/bin/tailscale
+        register: tailscale_binary_brew
+
+      - name: Check alternative binary location
+        stat:
+          path: /usr/local/bin/tailscale
+        register: tailscale_binary_alt
+
+      - name: Set correct binary path
+        set_fact:
+          tailscale_binary_path: "{{ '/opt/homebrew/bin/tailscale' if tailscale_binary_brew.stat.exists else ('/usr/local/bin/tailscale' if tailscale_binary_alt.stat.exists else '') }}"
+
+      - name: Verify tailscale command is available
+        command: "{{ tailscale_binary_path }} version"
+        register: tailscale_version
+        when: tailscale_binary_path != ""
+        failed_when: tailscale_version.rc != 0
+
+      - name: Record successful installation
+        copy:
+          dest: /tmp/test-results/homebrew-installation-success
+          content: |
+            Homebrew installation successful
+            Binary path: {{ tailscale_binary_path | default('not found') }}
+            Version: {{ tailscale_version.stdout_lines | first | default('unknown') if tailscale_version is defined else 'not available' }}
+            Brew list: {{ 'SUCCESS' if tailscale_brew_list.rc == 0 else 'FAILED' }}
+            Completed at: {{ ansible_date_time.iso8601 }}
+
+      - name: Display installation success
+        debug:
+          msg: "✅ Homebrew installation completed successfully"
+
+    rescue:
+      - name: Record installation failure
+        copy:
+          dest: /tmp/test-results/homebrew-installation-failed
+          content: |
+            Homebrew installation failed
+            Error: {{ ansible_failed_result.msg | default('unknown error') }}
+            Homebrew available: {{ 'YES' if homebrew_check.rc == 0 else 'NO' }}
+            Completed at: {{ ansible_date_time.iso8601 }}
+
+      - name: Display installation failure
+        debug:
+          msg: "❌ Homebrew installation failed"
+
+      - name: Fail the playbook
+        fail:
+          msg: "Homebrew installation verification failed"
+
+  - name: Test basic Tailscale functionality
+    block:
+      - name: Check Tailscale status
+        command: "{{ tailscale_binary_path }} status"
+        register: tailscale_status
+        failed_when: false
+        when: tailscale_binary_path != ""
+        no_log: true  # May contain sensitive network info
+
+      - name: Test Tailscale command help
+        command: "{{ tailscale_binary_path }} --help"
+        register: tailscale_help
+        failed_when: tailscale_help.rc != 0
+        when: tailscale_binary_path != ""
+
+      - name: Record functionality test results
+        copy:
+          dest: /tmp/test-results/homebrew-functionality-test
+          content: |
+            Tailscale status command: {{ 'PASS' if tailscale_status is defined and tailscale_status.rc == 0 else 'FAIL' }}
+            Tailscale help command: {{ 'PASS' if tailscale_help.rc == 0 else 'FAIL' }}
+            Binary path used: {{ tailscale_binary_path | default('none') }}
+            Tested at: {{ ansible_date_time.iso8601 }}
+        when: tailscale_binary_path != ""
+
+    always:
+      - name: Create installation summary
+        copy:
+          dest: /tmp/test-results/homebrew-installation-summary
+          content: |
+            === Homebrew Installation Test Summary ===
+            Scenario: Homebrew Installation Method
+            Started: {{ ansible_date_time.iso8601 }}
+            Homebrew Available: {{ 'YES' if homebrew_check.rc == 0 else 'NO' }}
+            Binary Found: {{ 'YES' if tailscale_binary_path != '' else 'NO' }}
+            Binary Path: {{ tailscale_binary_path | default('not found') }}
+            Version Check: {{ 'SUCCESS' if tailscale_version is defined and tailscale_version.rc == 0 else 'FAILED' }}
+            Status Command: {{ 'SUCCESS' if tailscale_status is defined and tailscale_status.rc == 0 else 'FAILED' }}
+            Help Command: {{ 'SUCCESS' if tailscale_help is defined and tailscale_help.rc == 0 else 'FAILED' }}
+            Overall Result: {{ 'SUCCESS' if (tailscale_binary_path != '' and tailscale_version is defined and tailscale_version.rc == 0 and tailscale_help is defined and tailscale_help.rc == 0) else 'FAILED' }}

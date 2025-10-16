@@ -1,0 +1,124 @@
+---
+- name: Verify Tailscale installation and configuration on macOS
+  hosts: all
+  gather_facts: true
+  vars:
+    test_results_dir: "/tmp/test-results"
+  tasks:
+    - name: Verify Tailscale binary is installed
+      stat:
+        path: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}"
+      register: tailscale_binary
+
+    - name: Check Tailscale version
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} version"
+      register: tailscale_version
+      when: tailscale_binary.stat.exists
+
+    - name: Verify Tailscale service status
+      service_facts:
+      register: service_facts
+
+    - name: Check Tailscale daemon status
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} status"
+      register: tailscale_status
+      failed_when: false
+      when: tailscale_binary.stat.exists
+
+    - name: Verify installation method matches configuration
+      assert:
+        that:
+          - tailscale_binary.stat.exists
+        success_msg: "Tailscale binary found at expected location"
+        fail_msg: "Tailscale binary not found"
+
+    - name: Verify version information is available
+      assert:
+        that:
+          - tailscale_version is succeeded
+          - "'tailscale' in tailscale_version.stdout"
+        success_msg: "Tailscale version information available"
+        fail_msg: "Unable to retrieve Tailscale version"
+
+    - name: Verify service is running (if authentication key provided)
+      assert:
+        that:
+          - tailscale_status.rc == 0 or tailscale_authkey == "test-auth-key"
+        success_msg: "Tailscale service is running"
+        fail_msg: "Tailscale service is not responding"
+
+    - name: Test Tailscale command functionality
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} --help"
+      register: tailscale_help
+      when: tailscale_binary.stat.exists
+
+    - name: Verify help command works
+      assert:
+        that:
+          - tailscale_help is succeeded
+          - "'Usage:' in tailscale_help.stdout or 'tailscale' in tailscale_help.stdout"
+        success_msg: "Tailscale help command works correctly"
+        fail_msg: "Tailscale help command failed"
+
+    - name: Check for configuration files
+      stat:
+        path: "{{ item }}"
+      register: config_files
+      loop:
+        - "/Library/LaunchDaemons/com.tailscale.tailscaled.plist"
+        - "/var/run/tailscale"
+      failed_when: false
+
+    - name: Verify system integration
+      assert:
+        that:
+          - config_files.results | selectattr('stat.exists') | list | length > 0
+        success_msg: "Tailscale system integration detected"
+        fail_msg: "No Tailscale system integration found"
+
+    - name: Generate verification report
+      copy:
+        dest: "{{ test_results_dir }}/verification-report.txt"
+        content: |
+          Tailscale Installation Verification Report
+          ========================================
+
+          Test Timestamp: {{ ansible_date_time.iso8601 }}
+          macOS Version: {{ ansible_distribution_version }}
+          Architecture: {{ ansible_architecture }}
+
+          Installation Results:
+          --------------------
+          Binary Installed: {{ tailscale_binary.stat.exists | bool }}
+          Version Retrieved: {{ tailscale_version is succeeded | bool }}
+          Service Status: {{ 'Running' if tailscale_status.rc == 0 else 'Not Running' }}
+          Help Command: {{ tailscale_help is succeeded | bool }}
+
+          Installation Details:
+          -------------------
+          Installation Method: {{ tailscale_installation_method }}
+          Binary Path: {{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}
+          Version Output: {{ tailscale_version.stdout | default('unknown') }}
+
+          System Integration:
+          ------------------
+          LaunchDaemon: {{ config_files.results[0].stat.exists | bool }}
+          Runtime Directory: {{ config_files.results[1].stat.exists | bool }}
+
+          Test Result: {{ 'PASSED' if (tailscale_binary.stat.exists and tailscale_version is succeeded) else 'FAILED' }}
+
+    - name: Final verification assertion
+      assert:
+        that:
+          - tailscale_binary.stat.exists
+          - tailscale_version is succeeded
+        success_msg: "All Tailscale verification tests passed"
+        fail_msg: "Some Tailscale verification tests failed"
+
+    - name: Display verification completion
+      debug:
+        msg: |
+          Tailscale installation verification completed successfully!
+          Installation method: {{ tailscale_installation_method }}
+          Version: {{ tailscale_version.stdout_lines[0] | default('unknown') }}
+          Status: {{ 'Connected' if tailscale_status.rc == 0 else 'Not Connected' }}

@@ -1,0 +1,92 @@
+---
+- name: Prepare macOS container for testing
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for macOS to be ready
+      wait_for:
+        timeout: 600
+        delay: 30
+      delegate_to: localhost
+
+    - name: Check container connectivity
+      ping:
+      register: ping_result
+      retries: 30
+      delay: 10
+      until: ping_result is succeeded
+
+    - name: Gather facts about macOS system
+      setup:
+        gather_subset:
+          - hardware
+          - network
+          - virtual
+      register: system_facts
+
+    - name: Display macOS version information
+      debug:
+        msg: |
+          macOS Version: {{ system_facts.ansible_facts.ansible_distribution_version }}
+          Architecture: {{ system_facts.ansible_facts.ansible_architecture }}
+          Memory: {{ system_facts.ansible_facts.ansible_memtotal_mb }}MB
+
+    - name: Create test directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /tmp/test-artifacts
+        - /tmp/test-scripts
+        - /tmp/test-logs
+
+    - name: Install basic dependencies
+      shell: |
+        # Check if Homebrew is installed
+        if ! command -v brew &> /dev/null; then
+          echo "Installing Homebrew..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+        else
+          echo "Homebrew already installed"
+        fi
+
+        # Install basic tools
+        brew install --quiet curl wget python3
+
+        # Install Ansible if not present
+        if ! command -v ansible &> /dev/null; then
+          pip3 install ansible
+        fi
+      args:
+        creates: /usr/local/bin/brew
+      register: brew_install
+
+    - name: Verify Ansible installation
+      command: ansible --version
+      register: ansible_version
+
+    - name: Display tool versions
+      debug:
+        msg: |
+          Ansible: {{ ansible_version.stdout_lines[0] }}
+          Python: {{ ansible_python.version }}
+          Container ready for testing
+
+    - name: Create SSH key for testing (if needed)
+      openssh_keypair:
+        path: ~/.ssh/macos_test_key
+        type: rsa
+        size: 2048
+        state: present
+        mode: '0600'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Test Ansible connectivity
+      ping:
+      register: final_ping
+
+    - name: Confirm preparation complete
+      debug:
+        msg: "macOS container preparation completed successfully"

@@ -1,0 +1,84 @@
+---
+- name: Test Tailscale Configuration Matrix on macOS
+  hosts: all
+  gather_facts: false
+  vars:
+    test_configs:
+      - name: "basic_configuration"
+        description: "Basic Tailscale configuration with default settings"
+        config:
+          tailscale_accept_routes: true
+          tailscale_ssh: true
+          tailscale_start_service: true
+          tailscale_enable_service: true
+          tailscale_log_level: "info"
+
+      - name: "advanced_networking"
+        description: "Advanced networking with DNS and route acceptance"
+        config:
+          tailscale_accept_routes: true
+          tailscale_accept_dns: true
+          tailscale_ssh: true
+          tailscale_userspace: true
+          tailscale_force_reauth: false
+          tailscale_log_level: "debug"
+
+      - name: "conservative_security"
+        description: "Conservative security settings"
+        config:
+          tailscale_accept_routes: false
+          tailscale_accept_dns: false
+          tailscale_ssh: false
+          tailscale_force_reauth: true
+          tailscale_userspace: false
+          tailscale_log_level: "warn"
+
+  tasks:
+  - name: Initialize configuration matrix test
+    debug:
+      msg: "Starting configuration matrix test with {{ test_configs | length }} configurations"
+
+  - name: Create test results directory
+    file:
+      path: /tmp/test-results
+      state: directory
+      mode: '0755'
+
+  - name: Record matrix test start
+    copy:
+      dest: /tmp/test-results/config-matrix-started
+      content: |
+        Configuration matrix test started at {{ ansible_date_time.iso8601 }}
+        Total configurations to test: {{ test_configs | length }}
+        Configurations: {{ test_configs | map(attribute='name') | join(', ') }}
+
+  - name: Initial Tailscale installation
+    include_role:
+      name: tailscale
+    vars:
+      tailscale_state: "present"
+      tailscale_installation_method: "go"
+      tailscale_auth_key: "{{ tailscale_authkey }}"
+
+  - name: Test each configuration
+    include_tasks: test_config.yml
+    loop: "{{ test_configs }}"
+    loop_control:
+      loop_var: test_config
+
+  - name: Create configuration matrix summary
+    copy:
+      dest: /tmp/test-results/config-matrix-summary
+      content: |
+        === Configuration Matrix Test Summary ===
+        Test started: {{ ansible_date_time.iso8601 }}
+        Total configurations tested: {{ test_configs | length }}
+
+        Configuration Results:
+        {% for config in test_configs %}
+        - {{ config.name }}: {{ config.description }}
+          Status: {{ 'TESTED' if config.tested | default(false) else 'NOT TESTED' }}
+          Result: {{ config.result | default('PENDING') }}
+        {% endfor %}
+
+        Overall Status: Matrix testing completed

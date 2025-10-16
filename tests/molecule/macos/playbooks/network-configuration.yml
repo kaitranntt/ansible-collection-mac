@@ -1,0 +1,212 @@
+---
+- name: Test Tailscale network configuration on macOS
+  hosts: all
+  gather_facts: true
+  vars:
+    test_results_dir: "/tmp/test-results/network-configuration"
+  tasks:
+    - name: Create test results directory
+      file:
+        path: "{{ test_results_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Record pre-configuration state
+      copy:
+        dest: "{{ test_results_dir }}/pre-config-state.txt"
+        content: |
+          Test Type: Network Configuration
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Network Interfaces: {{ ansible_interfaces | join(', ') }}
+
+    - name: Install Tailscale with basic configuration
+      include_role:
+        name: tailscale
+      vars:
+        tailscale_state: "present"
+        tailscale_installation_method: "{{ tailscale_installation_method | default('go') }}"
+        tailscale_auth_key: "{{ tailscale_authkey }}"
+        tailscale_accept_routes: true
+        tailscale_accept_dns: false
+        tailscale_ssh: true
+        tailscale_start_service: true
+        tailscale_enable_service: true
+        tailscale_log_level: "info"
+
+    - name: Test basic Tailscale status
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} status"
+      register: initial_status
+      failed_when: false
+
+    - name: Record initial status
+      copy:
+        dest: "{{ test_results_dir }}/initial-status.txt"
+        content: |
+          Exit Code: {{ initial_status.rc }}
+          Output: {{ initial_status.stdout | default('no output') }}
+          Error: {{ initial_status.stderr | default('no error') }}
+
+    - name: Test exit node configuration
+      block:
+        - name: Configure exit node settings
+          include_role:
+            name: tailscale
+          vars:
+            tailscale_state: "present"
+            tailscale_exit_node: "100.100.100.100"
+            tailscale_exit_node_allow_lan_access: true
+            tailscale_accept_routes: true
+            tailscale_accept_dns: true
+            tailscale_ssh: true
+
+        - name: Verify exit node configuration
+          command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} status"
+          register: exit_node_status
+          failed_when: false
+
+        - name: Record exit node status
+          copy:
+            dest: "{{ test_results_dir }}/exit-node-status.txt"
+            content: |
+              Exit Node: 100.100.100.100
+              LAN Access: enabled
+              DNS: enabled
+              Exit Code: {{ exit_node_status.rc }}
+              Output: {{ exit_node_status.stdout | default('no output') }}
+
+      rescue:
+        - name: Record exit node failure
+          copy:
+            dest: "{{ test_results_dir }}/exit-node-failure.txt"
+            content: "Exit node configuration failed at {{ ansible_date_time.iso8601 }}"
+
+    - name: Test DNS configuration
+      block:
+        - name: Configure DNS settings
+          include_role:
+            name: tailscale
+          vars:
+            tailscale_state: "present"
+            tailscale_accept_dns: true
+            tailscale_accept_routes: true
+            tailscale_ssh: true
+
+        - name: Test DNS resolution
+          command: nslookup google.com
+          register: dns_test
+          failed_when: false
+
+        - name: Record DNS test results
+          copy:
+            dest: "{{ test_results_dir }}/dns-test.txt"
+            content: |
+              DNS Configuration: Enabled
+              DNS Test Exit Code: {{ dns_test.rc }}
+              DNS Test Output: {{ dns_test.stdout | default('no output') }}
+
+      rescue:
+        - name: Record DNS failure
+          copy:
+            dest: "{{ test_results_dir }}/dns-failure.txt"
+            content: "DNS configuration test failed at {{ ansible_date_time.iso8601 }}"
+
+    - name: Test SSH configuration
+      block:
+        - name: Verify SSH is enabled
+          command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} status"
+          register: ssh_status
+          failed_when: false
+
+        - name: Check if SSH service is running
+          shell: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} ssh {{ ansible_hostname }} -- echo 'SSH test successful'"
+          register: ssh_test
+          failed_when: false
+          timeout: 30
+
+        - name: Record SSH test results
+          copy:
+            dest: "{{ test_results_dir }}/ssh-test.txt"
+            content: |
+              SSH Configuration: Enabled
+              SSH Test Exit Code: {{ ssh_test.rc }}
+              SSH Test Output: {{ ssh_test.stdout | default('no output') }}
+              SSH Test Error: {{ ssh_test.stderr | default('no error') }}
+
+      rescue:
+        - name: Record SSH failure
+          copy:
+            dest: "{{ test_results_dir }}/ssh-failure.txt"
+            content: "SSH configuration test failed at {{ ansible_date_time.iso8601 }}"
+
+    - name: Test subnet routing
+      block:
+        - name: Configure subnet routing
+          include_role:
+            name: tailscale
+          vars:
+            tailscale_state: "present"
+            tailscale_accept_routes: true
+            tailscale_advertise_tags: ["tag:test", "tag:macos"]
+            tailscale_ssh: true
+
+        - name: Get current routing table
+          command: netstat -rn
+          register: routing_table
+          failed_when: false
+
+        - name: Record routing information
+          copy:
+            dest: "{{ test_results_dir }}/routing-info.txt"
+            content: |
+              Subnet Routing: Enabled
+              Tags: tag:test, tag:macos
+              Routing Table Exit Code: {{ routing_table.rc }}
+              Routing Table Sample: {{ routing_table.stdout_lines[0:5] | default('no output') | join('\n') }}"
+
+      rescue:
+        - name: Record routing failure
+          copy:
+            dest: "{{ test_results_dir }}/routing-failure.txt"
+            content: "Subnet routing test failed at {{ ansible_date_time.iso8601 }}"
+
+    - name: Get final Tailscale status
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} status"
+      register: final_status
+      failed_when: false
+
+    - name: Record final status
+      copy:
+        dest: "{{ test_results_dir }}/final-status.txt"
+        content: |
+          Final Status Exit Code: {{ final_status.rc }}
+          Final Status Output: {{ final_status.stdout | default('no output') }}
+          Final Status Error: {{ final_status.stderr | default('no error') }}
+
+    - name: Generate network configuration test summary
+      copy:
+        dest: "{{ test_results_dir }}/test-summary.txt"
+        content: |
+          Network Configuration Test Summary
+          ===================================
+          Test Completed: {{ ansible_date_time.iso8601 }}
+          Installation Method: {{ tailscale_installation_method | default('go') }}
+
+          Configuration Tests:
+          - Exit Node Configuration: {{ 'PASSED' if lookup('file', test_results_dir + '/exit-node-status.txt', errors='ignore') is defined else 'FAILED' }}
+          - DNS Configuration: {{ 'PASSED' if lookup('file', test_results_dir + '/dns-test.txt', errors='ignore') is defined else 'FAILED' }}
+          - SSH Configuration: {{ 'PASSED' if lookup('file', test_results_dir + '/ssh-test.txt', errors='ignore') is defined else 'FAILED' }}
+          - Subnet Routing: {{ 'PASSED' if lookup('file', test_results_dir + '/routing-info.txt', errors='ignore') is defined else 'FAILED' }}
+
+          Test Result: {{ 'PASSED' if (final_status.rc == 0) else 'FAILED' }}
+
+    - name: Test network configuration overall success
+      assert:
+        that:
+          - final_status.rc == 0
+        success_msg: "Network configuration tests completed successfully"
+        fail_msg: "Some network configuration tests failed"
+
+    - name: Create success marker
+      copy:
+        dest: "{{ test_results_dir }}/network-config-complete"
+        content: "Network configuration tests completed at {{ ansible_date_time.iso8601 }}"

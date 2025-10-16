@@ -3,30 +3,28 @@ name: mac
 version: 1.0.0
 readme: README.md
 authors:
-- Kai Tran <kaitran.ntt@gmail.com>
-description: Ansible collection for managing macOS systems with Tailscale VPN 
-  support
+  - Kai Tran <kaitran.ntt@gmail.com>
+description: Ansible collection for managing macOS systems with Tailscale VPN support
 license:
-- MIT
+  - MIT
 tags:
-- macos
-- mac
-- tailscale
-- vpn
-- networking
+  - macos
+  - mac
+  - tailscale
+  - vpn
+  - networking
 dependencies: {}
 repository: https://github.com/kaitranntt/ansible-collection-mac
-documentation: 
-  https://github.com/kaitranntt/ansible-collection-mac/blob/main/README.md
+documentation: https://github.com/kaitranntt/ansible-collection-mac/blob/main/README.md
 homepage: https://github.com/kaitranntt/ansible-collection-mac
 issues: https://github.com/kaitranntt/ansible-collection-mac/issues
 build_ignore:
-- .gitignore
-- .venv
-- .pytest_cache
-- '*.pyc'
-- __pycache__
-- .coverage
-- htmlcov
-- .molecule
-- tests/output
+  - .gitignore
+  - .venv
+  - .pytest_cache
+  - '*.pyc'
+  - __pycache__
+  - .coverage
+  - htmlcov
+  - .molecule
+  - tests/output

@@ -1,0 +1,76 @@
+---
+- name: Test Tailscale binary installation on macOS
+  hosts: all
+  gather_facts: true
+  vars:
+    test_results_dir: "/tmp/test-results/binary-installation"
+    tailscape_version: "latest"
+  tasks:
+    - name: Create test results directory
+      file:
+        path: "{{ test_results_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Record pre-installation state
+      copy:
+        dest: "{{ test_results_dir }}/pre-install-state.txt"
+        content: |
+          Installation Method: Binary Download
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Architecture: {{ ansible_architecture }}
+          macOS Version: {{ ansible_distribution_version }}
+
+    - name: Include Tailscale role with binary installation method
+      include_role:
+        name: tailscale
+      vars:
+        tailscale_state: "present"
+        tailscale_installation_method: "binary"
+        tailscale_version: "{{ tailscape_version }}"
+        tailscale_auth_key: "{{ tailscale_authkey }}"
+        tailscale_accept_routes: true
+        tailscale_ssh: true
+        tailscale_start_service: true
+        tailscale_enable_service: true
+        tailscale_log_level: "info"
+
+    - name: Verify binary-based installation
+      stat:
+        path: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}"
+      register: tailscale_binary
+
+    - name: Check Tailscale version
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} version"
+      register: tailscale_version_result
+
+    - name: Get binary file information
+      stat:
+        path: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}"
+        get_checksum: false
+      register: binary_info
+
+    - name: Record installation results
+      copy:
+        dest: "{{ test_results_dir }}/installation-results.txt"
+        content: |
+          Installation Method: Binary Download
+          Binary Location: {{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}
+          Binary Exists: {{ tailscale_binary.stat.exists | bool }}
+          Binary Size: {{ binary_info.stat.size | default('unknown') }} bytes
+          Version: {{ tailscale_version_result.stdout | default('unknown') }}
+          Installation Time: {{ ansible_date_time.iso8601 }}
+
+    - name: Test binary installation method specifically
+      assert:
+        that:
+          - tailscale_binary.stat.exists
+          - binary_info.stat.size | default(0) > 0
+          - "'tailscale' in tailscale_version_result.stdout"
+        success_msg: "Binary installation method test passed"
+        fail_msg: "Binary installation method test failed"
+
+    - name: Create success marker
+      copy:
+        dest: "{{ test_results_dir }}/binary-installation-complete"
+        content: "Binary-based Tailscale installation completed at {{ ansible_date_time.iso8601 }}"

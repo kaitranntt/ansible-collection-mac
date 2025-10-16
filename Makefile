@@ -1,6 +1,6 @@
 # Makefile for kaitranntt.mac Ansible Collection
 
-.PHONY: help install lint test clean build upload docs docs-clean docs-serve docs-collection docs-validate devcontainer-build devcontainer-test devcontainer-shell devcontainer-destroy devcontainer-setup devcontainer-status format security security-checkov security-bandit security-safety security-secrets security-clean security-report quality quality-metrics quality-score quality-report quality-trend quality-clean setup-hooks update-hooks clean-quality
+.PHONY: help install lint test clean build upload docs docs-clean docs-serve docs-collection docs-validate devcontainer-build devcontainer-test devcontainer-shell devcontainer-destroy devcontainer-setup devcontainer-status format security security-checkov security-bandit security-safety security-secrets security-clean security-report quality quality-metrics quality-score quality-report quality-trend quality-clean setup-hooks update-hooks clean-quality test-macos test-macos-visual test-macos-clean test-macos-status test-macos-logs test-macos-all test-macos-matrix test-macos-installation test-macos-network test-macos-errors test-macos-analyze
 
 # Default target
 help:
@@ -43,6 +43,20 @@ help:
 	@echo "  devcontainer-destroy - Destroy the DevContainer"
 	@echo "  devcontainer-setup   - Setup DevContainer environment"
 	@echo "  devcontainer-status  - Check DevContainer status"
+	@echo ""
+	@echo "macOS Docker Testing targets:"
+	@echo "  test-macos        - Run macOS container tests"
+	@echo "  test-macos-visual  - Run macOS tests with visual monitoring"
+	@echo "  test-macos-clean   - Clean up macOS test artifacts"
+	@echo "  test-macos-status  - Check macOS container status"
+	@echo "  test-macos-logs    - Collect macOS test logs"
+	@echo "  test-macos-all     - Run all macOS test scenarios"
+	@echo "  test-macos-matrix  - Run configuration matrix tests"
+	@echo "  test-macos-installation - Run installation method tests"
+	@echo "  test-macos-network - Run network configuration tests"
+	@echo "  test-macos-errors - Run error scenario tests"
+	@echo "  test-macos-logs   - Collect and analyze test logs"
+	@echo "  test-macos-analyze - Analyze existing test logs"
 	@echo ""
 	@echo "Development targets:"
 	@echo "  setup-dev         - Setup complete development environment"
@@ -617,3 +631,312 @@ env-info:
 	@echo ""
 	@echo "=== Available Make Targets ==="
 	@make help 2>/dev/null | grep -E "^[a-zA-Z][^:]*:" | head -15 || echo "Run 'make help' for all targets"
+
+# =============================================================================
+# macOS Docker Testing Targets
+# =============================================================================
+
+# Check system requirements for macOS testing
+check-macos-requirements:
+	@echo "Checking macOS testing requirements..."
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "❌ Docker is not installed or not in PATH"; \
+		echo "Please install Docker: https://docs.docker.com/get-docker/"; \
+		exit 1; \
+	fi
+	@if ! docker info >/dev/null 2>&1; then \
+		echo "❌ Docker daemon is not running"; \
+		echo "Please start Docker and try again"; \
+		exit 1; \
+	fi
+	@if [[ "$OSTYPE" == "linux-gnu"* ]] && [[ ! -e /dev/kvm ]]; then \
+		echo "⚠️  KVM device not found. Container performance may be limited."; \
+		echo "Consider enabling KVM virtualization in BIOS/UEFI."; \
+	fi
+	@echo "✅ Requirements check passed"
+
+# Run macOS container tests
+test-macos:
+	@echo "Running macOS container tests..."
+	@$(MAKE) check-macos-requirements
+	@mkdir -p test-artifacts
+	@export TEST_ID=$$(date +%Y%m%d_%H%M%S) && \
+		echo "Test ID: $$TEST_ID" && \
+		if ./scripts/start-macos-container.sh; then \
+			echo "✅ Container started successfully"; \
+			cd tests/molecule/macos && \
+			if molecule test --scenario-name macos; then \
+				echo "✅ Molecule tests completed successfully"; \
+			else \
+				echo "❌ Molecule tests failed"; \
+				exit 1; \
+			fi; \
+			./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+		else \
+			echo "❌ Failed to start container"; \
+			exit 1; \
+		fi
+	@echo "✅ macOS tests completed successfully!"
+
+# Run macOS tests with visual monitoring
+test-macos-visual:
+	@echo "Running macOS tests with visual monitoring..."
+	@$(MAKE) check-macos-requirements
+	@mkdir -p test-artifacts
+	@export TEST_ID=$$(date +%Y%m%d_%H%M%S) && \
+		export VISUAL_MODE=true && \
+		export CAPTURE_SCREENSHOTS=true && \
+		echo "Visual test ID: $$TEST_ID" && \
+		if ./scripts/start-macos-container.sh; then \
+			echo "✅ Container started with visual monitoring"; \
+			cd tests/molecule/macos && \
+			if molecule test --scenario-name macos; then \
+				echo "✅ Visual tests completed successfully"; \
+			else \
+				echo "❌ Visual tests failed"; \
+				exit 1; \
+			fi; \
+			./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+		else \
+			echo "❌ Failed to start container"; \
+			exit 1; \
+		fi
+	@echo "✅ Visual macOS tests completed successfully!"
+
+# Clean up macOS test artifacts
+test-macos-clean:
+	@echo "Cleaning up macOS test artifacts..."
+	@if [ -d "test-artifacts" ]; then \
+		echo "Found test artifacts directory"; \
+		du -sh test-artifacts 2>/dev/null || echo "Size calculation failed"; \
+		read -p "Remove all test artifacts? (y/N): " -n 1 -r; \
+		echo; \
+		if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+			./scripts/cleanup-macos.sh --force; \
+			echo "✅ Test artifacts removed"; \
+		else \
+			echo "Keeping test artifacts"; \
+		fi; \
+	else \
+		echo "No test artifacts directory found"; \
+	fi
+
+# Check macOS container status
+test-macos-status:
+	@echo "Checking macOS container status..."
+	@./scripts/check-macos-status.sh --test-id local
+
+# Collect macOS test logs
+test-macos-logs:
+	@echo "Collecting macOS test logs..."
+	@mkdir -p logs/macos
+	@if docker-compose -f docker-compose.test.yml ps -q 2>/dev/null | grep -q .; then \
+		docker-compose -f docker-compose.test.yml logs --no-color > logs/macos/docker-compose.log; \
+		CONTAINER=$$(docker-compose -f docker-compose.test.yml ps -q macos-test 2>/dev/null || echo ""); \
+		if [ -n "$$CONTAINER" ]; then \
+			docker logs "$$CONTAINER" > logs/macos/container.log; \
+			echo "✅ Logs collected in logs/macos/"; \
+		else \
+			echo "⚠️  No running container found"; \
+		fi; \
+	else \
+		echo "⚠️  No containers running"; \
+	fi
+
+# Run all macOS test scenarios (different configurations)
+test-macos-all:
+	@echo "Running all macOS test scenarios..."
+	@$(MAKE) check-macos-requirements
+	@mkdir -p test-artifacts
+	@echo "Starting comprehensive macOS testing..."
+	@export TEST_ID="comprehensive_$$(date +%Y%m%d_%H%M%S)" && \
+		echo "Comprehensive test ID: $$TEST_ID" && \
+		for method in go binary homebrew; do \
+			echo "Testing installation method: $$method"; \
+			export INSTALLATION_METHOD=$$method && \
+			if ./scripts/start-macos-container.sh; then \
+				cd tests/molecule/macos && \
+				if molecule test --scenario-name macos; then \
+					echo "✅ Tests passed for $$method"; \
+				else \
+					echo "❌ Tests failed for $$method"; \
+					./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+					exit 1; \
+				fi; \
+				cd ../../../; \
+				./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+				sleep 30; \
+			else \
+				echo "❌ Failed to start container for $$method"; \
+				exit 1; \
+			fi; \
+		done
+	@echo "✅ All macOS test scenarios completed successfully!"
+
+# Quick macOS test (basic functionality only)
+test-macos-quick:
+	@echo "Running quick macOS test..."
+	@$(MAKE) check-macos-requirements
+	@export TEST_ID="quick_$$(date +%Y%m%d_%H%M%S)" && \
+		export INSTALLATION_METHOD=go && \
+		if ./scripts/start-macos-container.sh; then \
+			echo "✅ Container started"; \
+			sleep 60; \
+			if ./scripts/check-macos-status.sh --test-id $$TEST_ID | grep -q "READY"; then \
+				echo "✅ Container is ready"; \
+			else \
+				echo "⚠️  Container may not be fully ready"; \
+			fi; \
+			./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+		else \
+			echo "❌ Failed to start container"; \
+			exit 1; \
+		fi
+	@echo "✅ Quick macOS test completed"
+
+# Run configuration matrix tests
+test-macos-matrix:
+	@echo "Running configuration matrix tests..."
+	@$(MAKE) check-macos-requirements
+	@mkdir -p test-artifacts
+	@export TEST_ID="matrix_$$(date +%Y%m%d_%H%M%S)" && \
+		echo "Matrix test ID: $$TEST_ID" && \
+		if ./scripts/start-macos-container.sh; then \
+			echo "✅ Container started for matrix testing"; \
+			cd tests/molecule/macos-config-matrix && \
+			if molecule test --scenario-name config-matrix; then \
+				echo "✅ Configuration matrix tests completed successfully"; \
+			else \
+				echo "❌ Configuration matrix tests failed"; \
+				./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+				exit 1; \
+			fi; \
+			cd ../../../; \
+			./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+		else \
+			echo "❌ Failed to start container for matrix testing"; \
+			exit 1; \
+		fi
+	@echo "✅ Configuration matrix tests completed successfully!"
+
+# Run installation method tests
+test-macos-installation:
+	@echo "Running installation method tests..."
+	@$(MAKE) check-macos-requirements
+	@mkdir -p test-artifacts
+	@echo "Testing all installation methods..."
+	@export TEST_ID="installation_$$(date +%Y%m%d_%H%M%S)" && \
+		echo "Installation test ID: $$TEST_ID" && \
+		for method in go binary homebrew; do \
+			echo "Testing installation method: $$method"; \
+			if ./scripts/start-macos-container.sh; then \
+				cd tests/molecule/macos-installation-$$method && \
+				if molecule test --scenario-name installation-$$method; then \
+					echo "✅ Installation tests passed for $$method"; \
+				else \
+					echo "❌ Installation tests failed for $$method"; \
+					./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+					exit 1; \
+				fi; \
+				cd ../../..; \
+				./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+				sleep 30; \
+			else \
+				echo "❌ Failed to start container for $$method installation test"; \
+				exit 1; \
+			fi; \
+		done
+	@echo "✅ All installation method tests completed successfully!"
+
+# Run network configuration tests
+test-macos-network:
+	@echo "Running network configuration tests..."
+	@$(MAKE) check-macos-requirements
+	@mkdir -p test-artifacts
+	@export TEST_ID="network_$$(date +%Y%m%d_%H%M%S)" && \
+		echo "Network test ID: $$TEST_ID" && \
+		if ./scripts/start-macos-container.sh; then \
+			echo "✅ Container started for network testing"; \
+			cd tests/molecule/macos-network-config && \
+			if molecule test --scenario-name network-config; then \
+				echo "✅ Network configuration tests completed successfully"; \
+			else \
+				echo "❌ Network configuration tests failed"; \
+				./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+				exit 1; \
+			fi; \
+			cd ../../..; \
+			./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+		else \
+			echo "❌ Failed to start container for network testing"; \
+			exit 1; \
+		fi
+	@echo "✅ Network configuration tests completed successfully!"
+
+# Run error scenario tests
+test-macos-errors:
+	@echo "Running error scenario tests..."
+	@$(MAKE) check-macos-requirements
+	@mkdir -p test-artifacts
+	@export TEST_ID="errors_$$(date +%Y%m%d_%H%M%S)" && \
+		echo "Error scenario test ID: $$TEST_ID" && \
+		if ./scripts/start-macos-container.sh; then \
+			echo "✅ Container started for error testing"; \
+			cd tests/molecule/macos-error-scenarios && \
+			if molecule test --scenario-name error-scenarios; then \
+				echo "✅ Error scenario tests completed successfully"; \
+			else \
+				echo "❌ Error scenario tests failed"; \
+				./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+				exit 1; \
+			fi; \
+			cd ../../..; \
+			./scripts/stop-macos-container.sh --test-id $$TEST_ID; \
+		else \
+			echo "❌ Failed to start container for error testing"; \
+			exit 1; \
+		fi
+	@echo "✅ Error scenario tests completed successfully!"
+
+# Collect and analyze test logs
+test-macos-logs:
+	@echo "Collecting and analyzing test logs..."
+	@mkdir -p test-artifacts
+	@export TEST_ID=$$(date +%Y%m%d_%H%M%S) && \
+		echo "Log collection test ID: $$TEST_ID" && \
+		if ./scripts/collect-test-logs.sh --test-id $$TEST_ID --archive; then \
+			echo "✅ Log collection completed"; \
+			if ./scripts/analyze-test-logs.py --log-dir "test-artifacts/$$TEST_ID/logs" --output-dir "test-artifacts/$$TEST_ID/analysis" --verbose; then \
+				echo "✅ Log analysis completed"; \
+				echo "📋 Analysis report: test-artifacts/$$TEST_ID/analysis/analysis-report.md"; \
+				echo "📊 Analysis summary: test-artifacts/$$TEST_ID/log-collection-summary.txt"; \
+			else \
+				echo "⚠️  Log analysis failed, but logs were collected"; \
+			fi; \
+		else \
+			echo "❌ Log collection failed"; \
+			exit 1; \
+		fi
+	@echo "✅ Log collection and analysis completed!"
+
+# Analyze existing test logs
+test-macos-analyze:
+	@echo "Analyzing existing test logs..."
+	@if [ -d "test-artifacts" ]; then \
+		for test_dir in test-artifacts/*/; do \
+			if [ -d "$$test_dir/logs" ]; then \
+				test_name=$$(basename "$$test_dir"); \
+				echo "Analyzing logs for test: $$test_name"; \
+				./scripts/analyze-test-logs.py \
+					--log-dir "$$test_dir/logs" \
+					--output-dir "$$test_dir/analysis" \
+					--verbose || echo "⚠️  Analysis failed for $$test_name"; \
+			fi; \
+		done; \
+		echo "✅ Log analysis completed!"; \
+		echo "📋 Check test-artifacts/*/analysis/ directories for reports"; \
+	else \
+		echo "❌ No test-artifacts directory found"; \
+		echo "💡 Run tests first or use 'make test-macos-logs' to collect and analyze logs"; \
+		exit 1; \
+	fi

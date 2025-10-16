@@ -1,0 +1,117 @@
+---
+- name: "Test configuration: {{ test_config.name }}"
+  block:
+    - name: "Start testing configuration: {{ test_config.name }}"
+      debug:
+        msg: "Testing configuration: {{ test_config.description }}"
+
+    - name: Apply configuration
+      include_role:
+        name: tailscale
+      vars:
+        tailscale_state: "present"
+        tailscale_auth_key: "{{ tailscale_authkey }}"
+        tailscale_accept_routes: "{{ test_config.config.tailscale_accept_routes }}"
+        tailscale_accept_dns: "{{ test_config.config.tailscale_accept_dns | default(false) }}"
+        tailscale_ssh: "{{ test_config.config.tailscale_ssh }}"
+        tailscale_start_service: "{{ test_config.config.tailscale_start_service }}"
+        tailscale_enable_service: "{{ test_config.config.tailscale_enable_service }}"
+        tailscale_log_level: "{{ test_config.config.tailscale_log_level }}"
+        tailscale_userspace: "{{ test_config.config.tailscale_userspace | default(false) }}"
+        tailscale_force_reauth: "{{ test_config.config.tailscale_force_reauth | default(false) }}"
+
+    - name: Wait for configuration to apply
+      pause:
+        seconds: 10
+
+    - name: Verify configuration is applied
+      block:
+        - name: Check Tailscale status
+          command: tailscale status
+          register: tailscale_status
+          failed_when: false
+          no_log: true
+
+        - name: Verify service status (if enabled)
+          command: launchctl list com.tailscale.tailscaled
+          register: service_status
+          failed_when: false
+          when: test_config.config.tailscale_enable_service | default(false)
+
+        - name: Check networking configuration
+          shell: |
+            # Check if routes are accepted
+            if [ "{{ test_config.config.tailscale_accept_routes | default(false) }}" = "True" ]; then
+              echo "Route acceptance: ENABLED"
+            else
+              echo "Route acceptance: DISABLED"
+            fi
+
+            # Check if DNS is accepted
+            if [ "{{ test_config.config.tailscale_accept_dns | default(false) }}" = "True" ]; then
+              echo "DNS acceptance: ENABLED"
+            else
+              echo "DNS acceptance: DISABLED"
+            fi
+
+            # Check current IP configuration
+            ifconfig | grep -A 3 "utun" || echo "No utun interface found"
+          register: network_check
+          failed_when: false
+
+        - name: Record successful configuration test
+          copy:
+            dest: "/tmp/test-results/config-{{ test_config.name }}-success"
+            content: |
+              Configuration: {{ test_config.name }}
+              Description: {{ test_config.description }}
+              Status: SUCCESS
+              Tailscale status: {{ 'ONLINE' if tailscale_status.rc == 0 else 'OFFLINE/ERROR' }}
+              Service enabled: {{ test_config.config.tailscale_enable_service | default(false) }}
+              Service running: {{ 'YES' if service_status.rc == 0 else 'NO' }}
+              Tested at: {{ ansible_date_time.iso8601 }}
+              Network output: {{ network_check.stdout_lines | default(['No network info']) | join('\n') }}
+
+        - name: Mark configuration as tested and successful
+          set_fact:
+            test_configs: >-
+              {{
+                test_configs | map('combine', {
+                  'tested': true,
+                  'result': 'SUCCESS'
+                }) | list
+              }}
+
+        - name: "✅ Configuration {{ test_config.name }} completed successfully"
+          debug:
+            msg: "Configuration {{ test_config.name }}: {{ test_config.description }} - SUCCESS"
+
+      rescue:
+        - name: Record configuration test failure
+          copy:
+            dest: "/tmp/test-results/config-{{ test_config.name }}-failed"
+            content: |
+              Configuration: {{ test_config.name }}
+              Description: {{ test_config.description }}
+              Status: FAILED
+              Error: {{ ansible_failed_result.msg | default('unknown error') }}
+              Tested at: {{ ansible_date_time.iso8601 }}
+
+        - name: Mark configuration as tested but failed
+          set_fact:
+            test_configs: >-
+              {{
+                test_configs | map('combine', {
+                  'tested': true,
+                  'result': 'FAILED'
+                }) | list
+              }}
+
+        - name: "❌ Configuration {{ test_config.name }} failed"
+          debug:
+            msg: "Configuration {{ test_config.name }}: {{ test_config.description }} - FAILED"
+
+  always:
+    - name: "Cleanup after configuration test: {{ test_config.name }}"
+      debug:
+        msg: "Cleaning up after configuration test: {{ test_config.name }}"

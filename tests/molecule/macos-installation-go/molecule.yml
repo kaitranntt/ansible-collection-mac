@@ -1,0 +1,97 @@
+dependency:
+  name: galaxy
+  options:
+    force: true
+
+driver:
+  name: docker
+
+platforms:
+- name: macos-install-go
+  image: dockurr/macos
+  pre_build_image: true
+  groups:
+  - macos
+  - all
+  environment:
+    ANSIBLE_HOST_KEY_CHECKING: 'False'
+    PY_COLORS: '1'
+    INSTALLATION_METHOD: go
+  devices:
+  - /dev/kvm
+  - /dev/net/tun
+  cap_add:
+  - NET_ADMIN
+  - SYS_ADMIN
+  ports:
+  - "8006:8006"
+  - "5900:5900"
+  - "2222:22"
+  volumes:
+  - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  - ../../../test-artifacts:/storage
+  - ../../../scripts:/workspace/scripts:ro
+  - ../../../tests:/workspace/tests:ro
+  - ../../../roles:/workspace/roles:ro
+  privileged: true
+  timeout: 1800
+  command: /bin/bash -c "sleep infinity"
+  networks:
+  - name: macos-test-net
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8006"]
+    interval: 30s
+    timeout: 10s
+    retries: 10
+    start_period: 300s
+
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        ansible_user: root
+        ansible_connection: ssh
+        ansible_ssh_port: 2222
+        ansible_ssh_private_key_file: ~/.ssh/macos_test_key
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+        tailscale_authkey: "{{ lookup('env', 'TAILSCALE_TEST_AUTHKEY') | default('test-auth-key') }}"
+        tailscale_installation_method: "go"
+        tailscale_accept_routes: true
+        tailscale_ssh: true
+        tailscale_start_service: true
+        tailscale_enable_service: true
+        tailscale_log_level: "info"
+        tailscale_create_directories: true
+        macos_test_mode: true
+        test_scenario: "go_installation"
+      macos:
+        ansible_python_interpreter: /usr/bin/python3
+  log: true
+  env:
+    ANSIBLE_ROLES_PATH: ../../..
+    ANSIBLE_LIBRARY: ../../../../plugins/modules
+    ANSIBLE_MODULE_UTILS: ../../../../plugins/module_utils
+    ANSIBLE_FILTER_PLUGINS: ../../../../plugins/filter
+    ANSIBLE_CALLBACK_PLUGINS: ~/.ansible/plugins/callback:/usr/share/ansible/plugins/callback
+    ANSIBLE_STDOUT_CALLBACK: yaml
+    ANSIBLE_RETRY_FILES_ENABLED: 'false'
+  playbooks:
+    prepare: ../macos/prepare.yml
+    converge: playbooks/installation-go.yml
+    verify: ../macos/verify.yml
+
+verifier:
+  name: ansible
+
+scenario:
+  name: installation-go
+  test_sequence:
+  - dependency
+  - syntax
+  - create
+  - prepare
+  - converge
+  - verify
+  - cleanup
+  - destroy

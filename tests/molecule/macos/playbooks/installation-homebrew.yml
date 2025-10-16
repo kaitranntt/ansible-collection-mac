@@ -1,0 +1,85 @@
+---
+- name: Test Tailscale Homebrew installation on macOS
+  hosts: all
+  gather_facts: true
+  vars:
+    test_results_dir: "/tmp/test-results/homebrew-installation"
+  tasks:
+    - name: Create test results directory
+      file:
+        path: "{{ test_results_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Record pre-installation state
+      copy:
+        dest: "{{ test_results_dir }}/pre-install-state.txt"
+        content: |
+          Installation Method: Homebrew
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Homebrew Version: {{ ansible_local.homebrew_version | default('not installed') }}
+
+    - name: Verify Homebrew installation
+      command: brew --version
+      register: homebrew_version_check
+
+    - name: Record Homebrew version
+      copy:
+        dest: "{{ test_results_dir }}/homebrew-version.txt"
+        content: "{{ homebrew_version_check.stdout }}"
+
+    - name: Include Tailscale role with Homebrew installation method
+      include_role:
+        name: tailscale
+      vars:
+        tailscale_state: "present"
+        tailscale_installation_method: "homebrew"
+        tailscale_auth_key: "{{ tailscale_authkey }}"
+        tailscale_accept_routes: true
+        tailscale_ssh: true
+        tailscale_start_service: true
+        tailscale_enable_service: true
+        tailscale_log_level: "info"
+
+    - name: Verify Homebrew-based installation
+      stat:
+        path: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}"
+      register: tailscale_binary
+
+    - name: Check Tailscale version
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} version"
+      register: tailscale_version_result
+
+    - name: Check if installed via Homebrew
+      command: brew list tailscale
+      register: homebrew_list_check
+      failed_when: false
+
+    - name: Get package information from Homebrew
+      command: brew info tailscale
+      register: homebrew_info
+      failed_when: false
+
+    - name: Record installation results
+      copy:
+        dest: "{{ test_results_dir }}/installation-results.txt"
+        content: |
+          Installation Method: Homebrew
+          Binary Location: {{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}
+          Binary Exists: {{ tailscale_binary.stat.exists | bool }}
+          Version: {{ tailscale_version_result.stdout | default('unknown') }}
+          In Homebrew List: {{ homebrew_list_check.rc == 0 }}
+          Installation Time: {{ ansible_date_time.iso8601 }}
+
+    - name: Test Homebrew installation method specifically
+      assert:
+        that:
+          - tailscale_binary.stat.exists
+          - homebrew_list_check.rc == 0 or "'tailscale' in tailscale_version_result.stdout"
+        success_msg: "Homebrew installation method test passed"
+        fail_msg: "Homebrew installation method test failed"
+
+    - name: Create success marker
+      copy:
+        dest: "{{ test_results_dir }}/homebrew-installation-complete"
+        content: "Homebrew-based Tailscale installation completed at {{ ansible_date_time.iso8601 }}"

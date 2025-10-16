@@ -1,0 +1,81 @@
+---
+- name: Test Tailscale Go installation on macOS
+  hosts: all
+  gather_facts: true
+  vars:
+    test_results_dir: "/tmp/test-results/go-installation"
+  tasks:
+    - name: Create test results directory
+      file:
+        path: "{{ test_results_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Record pre-installation state
+      copy:
+        dest: "{{ test_results_dir }}/pre-install-state.txt"
+        content: |
+          Installation Method: Go
+          Timestamp: {{ ansible_date_time.iso8601 }}
+          Go Version: {{ ansible_local.go_version | default('not installed') }}
+          GOPATH: {{ ansible_env.GOPATH | default('not set') }}
+
+    - name: Install Go if not present (dependency for tailscale-go installation)
+      homebrew:
+        name: go
+        state: present
+      when: ansible_local.go_version is not defined
+
+    - name: Verify Go installation
+      command: go version
+      register: go_version_check
+
+    - name: Record Go version
+      copy:
+        dest: "{{ test_results_dir }}/go-version.txt"
+        content: "{{ go_version_check.stdout }}"
+
+    - name: Include Tailscale role with Go installation method
+      include_role:
+        name: tailscale
+      vars:
+        tailscale_state: "present"
+        tailscale_installation_method: "go"
+        tailscale_auth_key: "{{ tailscale_authkey }}"
+        tailscale_accept_routes: true
+        tailscale_ssh: true
+        tailscale_start_service: true
+        tailscale_enable_service: true
+        tailscale_log_level: "info"
+
+    - name: Verify Go-based installation
+      stat:
+        path: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}"
+      register: tailscale_binary
+
+    - name: Check Tailscale version
+      command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} version"
+      register: tailscale_version_result
+
+    - name: Record installation results
+      copy:
+        dest: "{{ test_results_dir }}/installation-results.txt"
+        content: |
+          Installation Method: Go
+          Binary Location: {{ tailscale_binary_path | default('/usr/local/bin/tailscale') }}
+          Binary Exists: {{ tailscale_binary.stat.exists | bool }}
+          Version: {{ tailscale_version_result.stdout | default('unknown') }}
+          Installation Time: {{ ansible_date_time.iso8601 }}
+
+    - name: Test Go installation method specifically
+      assert:
+        that:
+          - tailscale_binary.stat.exists
+          - "'tailscale' in tailscale_version_result.stdout"
+        success_msg: "Go installation method test passed"
+        fail_msg: "Go installation method test failed"
+
+    - name: Create success marker
+      copy:
+        dest: "{{ test_results_dir }}/go-installation-complete"
+        content: "Go-based Tailscale installation completed at {{ ansible_date_time.iso8601 }}"
