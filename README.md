@@ -315,6 +315,71 @@ ansible-playbook -i inventory playbook.yml \
 
 ### Setting up Development Environment
 
+#### Option 1: Using DevContainer (Recommended)
+
+This project provides a complete macOS development environment using DevContainers with the authentic `dockur/macos` base image.
+
+**Prerequisites:**
+- Docker Desktop or Docker Engine
+- VS Code with Remote - Containers extension
+- 4GB+ RAM available for Docker
+
+**Quick Start:**
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/kaitranntt/ansible-collection-mac.git
+   cd ansible-collection-mac
+   ```
+
+2. **Open in VS Code:**
+   ```bash
+   code .
+   ```
+
+3. **Reopen in Container:**
+   - When VS Code opens, click "Reopen in Container" when prompted
+   - Or press `F1` and select "Remote-Containers: Reopen in Container"
+
+4. **Wait for setup completion:**
+   - The DevContainer will automatically build and install all dependencies
+   - This includes Xcode tools, Homebrew, Ansible, Go, Molecule, and development tools
+
+**Manual DevContainer Management:**
+
+```bash
+# Check DevContainer status
+make devcontainer-status
+
+# Open shell in DevContainer
+make devcontainer-shell
+
+# Run tests in DevContainer
+make devcontainer-test
+
+# Destroy DevContainer
+make devcontainer-destroy
+```
+
+**DevContainer Features:**
+- 🍎 **Authentic macOS Environment**: Based on dockur/macos for genuine macOS development
+- 📦 **Pre-installed Tools**: Xcode CLI tools, Homebrew, Ansible, Go, Molecule, and more
+- 🔧 **VS Code Integration**: Pre-configured extensions, settings, and debugging
+- 🚀 **Fast Development**: No local setup required, ready to code in minutes
+- 🐳 **Docker Integration**: Full Docker access for container-based testing
+- 🔄 **Persistent Workspace**: Code and settings persist across container rebuilds
+
+#### Option 2: Local Development Setup
+
+**Prerequisites:**
+- macOS 10.15 (Catalina) or later
+- Python 3.8+
+- Ansible
+- Molecule
+- Git
+
+**Setup:**
+
 ```bash
 # Clone standalone (for direct contribution)
 git clone https://github.com/kaitranntt/ansible-collection-mac.git
@@ -329,6 +394,22 @@ cd PersonalOpenSource/apps/ansible-collection-mac
 
 ### Running Tests
 
+**In DevContainer:**
+
+```bash
+# Run all tests
+make test
+
+# Run specific tests
+make lint
+molecule test
+
+# Quick development cycle
+make quick-test
+```
+
+**Local Development:**
+
 ```bash
 # Run linting
 ansible-lint
@@ -339,6 +420,104 @@ molecule test
 # Run full test suite
 make test
 ```
+
+### DevContainer Configuration
+
+The DevContainer includes the following pre-configured settings:
+
+**VS Code Extensions:**
+- Ansible extension by Red Hat
+- YAML support and linting
+- Python development tools
+- Git integration
+- Docker integration
+- Spell checking
+
+**Development Tools:**
+- Xcode Command Line Tools
+- Homebrew package manager
+- Ansible and ansible-lint
+- Molecule for testing
+- Go programming language
+- Development utilities (tree, htop, jq, yq)
+
+**Environment Variables:**
+```bash
+export ANSIBLE_INVENTORY=./inventory
+export ANSIBLE_HOST_KEY_CHECKING=False
+export GOPATH=$HOME/go
+export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin:$HOME/.local/bin
+```
+
+### GitHub Codespaces Support
+
+This project supports GitHub Codespaces for cloud-based development:
+
+1. Click "Code" → "Codespaces" → "Create codespace on main"
+2. The codespace will build automatically with all dependencies
+3. Start developing immediately in your browser
+
+**Codespaces Features:**
+- Same environment as local DevContainer
+- Full VS Code experience in browser
+- 4-core CPU, 8GB RAM, 32GB storage
+- Pre-authenticated with your GitHub account
+
+### DevContainer Troubleshooting
+
+**Common DevContainer Issues:**
+
+*Container fails to start*
+```bash
+# Check Docker is running
+docker version
+
+# Check available memory
+docker system df
+
+# Check container logs
+docker logs kaitranntt-mac-devcontainer
+```
+
+*Setup script fails*
+```bash
+# Manually run setup
+make devcontainer-shell
+bash /workspaces/.devcontainer/setup.sh
+
+# Check script permissions
+chmod +x .devcontainer/setup.sh
+```
+
+*VS Code can't connect to container*
+```bash
+# Rebuild container
+code . --rebuild
+
+# Or rebuild manually
+docker-compose down
+docker-compose up --build
+```
+
+*Permission issues inside container*
+```bash
+# Fix ownership
+sudo chown -R $USER:$USER /workspaces
+
+# Check file permissions
+ls -la .devcontainer/
+```
+
+*Slow performance*
+- Ensure Docker has adequate resources (4GB+ RAM)
+- Close unused applications
+- Use SSD storage for better performance
+- Consider increasing Docker memory allocation
+
+**Getting Help with DevContainer:**
+- Check [VS Code DevContainers documentation](https://code.visualstudio.com/docs/devcontainers/containers)
+- Review [Docker Desktop troubleshooting](https://docs.docker.com/desktop/troubleshoot/overview/)
+- Open an issue on this repository's GitHub page
 
 ### Building Collection
 
