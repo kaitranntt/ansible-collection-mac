@@ -1,0 +1,83 @@
+{
+  "name": "kaitranntt.mac - Ansible Collection Development",
+  "image": "dockur/macos:latest",
+
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-yaml",
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.flake8",
+        "redhat.ansible",
+        "redhat.vscode-yaml",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode-remote.remote-ssh",
+        "eamodio.gitlens",
+        "ms-vscode.vscode-json",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.formatting.provider": "black",
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "yaml.validate": true,
+        "yaml.schemas": {
+          "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json": "*.ansible"
+        },
+        "ansible.validation.enabled": true,
+        "ansible.lint.enabled": true,
+        "files.associations": {
+          "*.yml": "ansible",
+          "*.yaml": "ansible"
+        },
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+        },
+        "terminal.integrated.shell.linux": "/bin/zsh"
+      }
+    }
+  },
+
+  "forwardPorts": [22, 8080, 41641],
+
+  "portsAttributes": {
+    "41641": {
+      "label": "Tailscale",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "postCreateCommand": "bash /workspaces/.devcontainer/setup.sh",
+
+  "remoteUser": "root",
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+
+  "runArgs": [
+    "--cap-add=SYS_ADMIN",
+    "--device=/dev/fuse",
+    "--security-opt=apparmor:unconfined",
+    "--privileged"
+  ],
+
+  "hostRequirements": {
+    "memory": "4gb",
+    "cpus": 2
+  },
+
+  " lifecycleScripts": {
+    "postCreate": {
+      "command": "bash /workspaces/.devcontainer/setup.sh"
+    }
+  }
+}

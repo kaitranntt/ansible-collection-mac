@@ -1,0 +1,39 @@
+{
+  "codespaces": {
+    "name": "kaitranntt.mac Codespace",
+    "machine": "standardLinuxX64",
+    "diskSize": 32,
+    "displayName": "kaitranntt.mac Ansible Collection Development",
+    "idleTimeoutMinutes": 60,
+    "persistentVolumes": {
+      "/workspaces/ansible-collection-mac": {
+        "sizeGiB": 1,
+        "name": "ansible-workspace"
+      }
+    },
+    "devContainer": {
+      "path": ".devcontainer",
+      "features": {
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+      }
+    },
+    "secrets": {
+      "GALAXY_API_KEY": {
+        "description": "Ansible Galaxy API key for publishing collections"
+      },
+      "TAILSCALE_AUTH_KEY": {
+        "description": "Tailscale authentication key for testing"
+      }
+    },
+    "allowedPorts": [22, 8080, 41641],
+    "forwardPorts": [22, 8080, 41641],
+    "portsAttributes": {
+      "41641": {
+        "label": "Tailscale",
+        "onAutoForward": "notify"
+      }
+    }
+  }
+}
