@@ -27,3 +27,10 @@ build_ignore:
   - "*.pyc"
   - __pycache__
   - "*.tar.gz"
+  - .devcontainer
+  - .vscode
+  - .github
+  - Makefile
+  - DEVCONTAINER.md
+  - ATTRIBUTIONS.md
+  - IMPLEMENTATION_SUMMARY.md
