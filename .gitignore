@@ -157,4 +157,10 @@ Thumbs.db
 *.temp
 temp/
 tmp/
+
+# Security and Quality Reports (potentially sensitive)
+security-reports/
+quality-reports/
+*-security-report.json
+*-quality-report.json
 security-report.json
