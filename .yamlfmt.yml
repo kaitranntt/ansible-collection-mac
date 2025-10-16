@@ -1,0 +1,26 @@
+# yamlfmt configuration for consistent YAML formatting
+formatter:
+  type: basic
+  retain_line_breaks: true
+  indent: 2
+  scan_inline_lists: false
+  disallow_anchors: true
+  max_line_length: 120
+  line_ending: lf
+
+# File patterns to include/exclude
+include:
+- '*.yml'
+- '*.yaml'
+
+exclude:
+- .git/**
+- tests/molecule/**/created/**
+- .molecule/**
+- '*.tar.gz'
+- .pytest_cache/**
+- .cache/**
+- .yamllint.yml
+- .yamlfmt.yml
+- .ansible-lint.yml
+- .pre-commit-config.yaml

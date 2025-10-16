@@ -1,14 +1,13 @@
----
 # Verification tasks for Tailscale installation
 
 - name: Verify Tailscale CLI is accessible
-  ansible.builtin.command: "{{ tailscale_cli_path }} version"
+  ansible.builtin.command: '{{ tailscale_cli_path }} version'
   register: tailscale_version_check
   changed_when: false
 
 - name: Display Tailscale version
   ansible.builtin.debug:
-    msg: "Tailscale version: {{ tailscale_version_check.stdout_lines[0] }}"
+    msg: 'Tailscale version: {{ tailscale_version_check.stdout_lines[0] }}'
 
 - name: Check Tailscale service status
   ansible.builtin.command: launchctl list | grep com.tailscale.tailscaled
@@ -18,30 +17,30 @@
 
 - name: Display service status
   ansible.builtin.debug:
-    msg: "Tailscale service is running"
+    msg: Tailscale service is running
   when: tailscale_service_status.rc == 0
 
 - name: Check Tailscale connectivity status
-  ansible.builtin.command: "{{ tailscale_cli_path }} status"
+  ansible.builtin.command: '{{ tailscale_cli_path }} status'
   register: tailscale_connectivity_status
   changed_when: false
   failed_when: false
 
 - name: Display connectivity status
   ansible.builtin.debug:
-    msg: "Tailscale is connected and operational"
+    msg: Tailscale is connected and operational
   when: >
     tailscale_connectivity_status.rc == 0 and
     'Logged out' not in tailscale_connectivity_status.stderr
 
 - name: Verify Tailscale socket exists
   ansible.builtin.stat:
-    path: "{{ tailscale_socket_path }}"
+    path: '{{ tailscale_socket_path }}'
   register: tailscale_socket_check
 
 - name: Display socket status
   ansible.builtin.debug:
-    msg: "Tailscale socket is available"
+    msg: Tailscale socket is available
   when: tailscale_socket_check.stat.exists
 
 - name: Installation verification summary
@@ -50,5 +49,7 @@
       Tailscale installation verification completed:
       - CLI: {{ 'OK' if tailscale_version_check.rc == 0 else 'FAILED' }}
       - Service: {{ 'OK' if tailscale_service_status.rc == 0 else 'FAILED' }}
-      - Connectivity: {{ 'OK' if tailscale_connectivity_status.rc == 0 and 'Logged out' not in tailscale_connectivity_status.stderr else 'NEEDS_LOGIN' }}
+      - Connectivity: >-
+        {{ 'OK' if tailscale_connectivity_status.rc == 0 and 'Logged out' not in
+        tailscale_connectivity_status.stderr else 'NEEDS_LOGIN' }}
       - Socket: {{ 'OK' if tailscale_socket_check.stat.exists else 'FAILED' }}

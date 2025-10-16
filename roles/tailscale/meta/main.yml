@@ -1,59 +1,58 @@
----
 # Role metadata for Tailscale role
 
 galaxy_info:
   author: Tam Nhu (Kai) Tran
   description: Install and configure Tailscale on macOS systems
-  company: ""
+  company: ''
   license: MIT
   min_ansible_version: 2.12.0
 
   platforms:
-    - name: MacOS
-      versions:
-        - "11.0"
-        - "11.1"
-        - "11.2"
-        - "11.3"
-        - "11.4"
-        - "11.5"
-        - "11.6"
-        - "11.7"
-        - "12.0"
-        - "12.1"
-        - "12.2"
-        - "12.3"
-        - "12.4"
-        - "12.5"
-        - "12.6"
-        - "12.7"
-        - "13.0"
-        - "13.1"
-        - "13.2"
-        - "13.3"
-        - "13.4"
-        - "13.5"
-        - "13.6"
-        - "14.0"
-        - "14.1"
-        - "14.2"
-        - "14.3"
-        - "14.4"
-        - "14.5"
-        - "14.6"
-        - "15.0"
-        - "15.1"
-        - "15.2"
+  - name: MacOS
+    versions:
+    - '11.0'
+    - '11.1'
+    - '11.2'
+    - '11.3'
+    - '11.4'
+    - '11.5'
+    - '11.6'
+    - '11.7'
+    - '12.0'
+    - '12.1'
+    - '12.2'
+    - '12.3'
+    - '12.4'
+    - '12.5'
+    - '12.6'
+    - '12.7'
+    - '13.0'
+    - '13.1'
+    - '13.2'
+    - '13.3'
+    - '13.4'
+    - '13.5'
+    - '13.6'
+    - '14.0'
+    - '14.1'
+    - '14.2'
+    - '14.3'
+    - '14.4'
+    - '14.5'
+    - '14.6'
+    - '15.0'
+    - '15.1'
+    - '15.2'
 
   galaxy_tags:
-    - macos
-    - mac
-    - tailscale
-    - vpn
-    - networking
-    - system
-    - security
-    - zerotier
-    - wireguard
+  - macos
+  - mac
+  - tailscale
+  - vpn
+  - networking
+  - system
+  - security
+  - zerotier
+  - wireguard
 
 dependencies: []

@@ -1,13 +1,12 @@
----
 # Tailscale version to install
-tailscale_version: "latest"
+tailscale_version: latest
 
 # Installation method: go, binary, homebrew
-tailscale_installation_method: "go"  # go, binary, homebrew
+tailscale_installation_method: go    # go, binary, homebrew
 
 # State of Tailscale installation
 # Options: "present", "absent"
-tailscale_state: "present"
+tailscale_state: present
 
 # Whether to update Tailscale if already installed
 tailscale_update: true
@@ -17,23 +16,23 @@ tailscale_force_update: false
 tailscale_auto_start: true
 tailscale_start_service: true
 tailscale_enable_service: true
-tailscale_log_level: "info"  # debug, info, warn, error
+tailscale_log_level: info    # debug, info, warn, error
 
 # Tailscale authentication key (optional)
 # Can be provided as a variable or from Ansible Vault
-tailscale_auth_key: ""
+tailscale_auth_key: ''
 tailscale_auth_timeout: 30
 
 # Custom login server for self-hosted setups (optional)
 # Example: "https://headscale.example.com"
-tailscale_login_server: ""
-tailscale_control_plane: ""
+tailscale_login_server: ''
+tailscale_control_plane: ''
 
 # Network Configuration
 tailscale_accept_routes: true
 tailscale_accept_dns: false
 tailscale_advertise_tags: []
-tailscale_exit_node: ""
+tailscale_exit_node: ''
 tailscale_exit_node_allow_lan_access: false
 tailscale_ssh: false
 
@@ -42,31 +41,31 @@ tailscale_ssh: false
 tailscale_args: []
 
 # Path Configuration
-tailscale_binary_path: "/usr/local/bin/tailscale"
-tailscaled_binary_path: "/usr/local/bin/tailscaled"
-tailscale_state_dir: "/var/lib/tailscale"
-tailscale_log_dir: "/var/log/tailscale"
-tailscale_socket_path: "/var/run/tailscale/tailscaled.sock"
+tailscale_binary_path: /usr/local/bin/tailscale
+tailscaled_binary_path: /usr/local/bin/tailscaled
+tailscale_state_dir: /var/lib/tailscale
+tailscale_log_dir: /var/log/tailscale
+tailscale_socket_path: /var/run/tailscale/tailscaled.sock
 
 # Tailscale user for service
-tailscale_user: "_tailscale"
-tailscale_user_binary_path: "/usr/local/bin"
+tailscale_user: _tailscale
+tailscale_user_binary_path: /usr/local/bin
 
 # Timeout for Tailscale operations (in seconds)
 tailscale_timeout: 60
 
 # Download URL for Tailscale installation
-tailscale_base_url: "https://pkgs.tailscale.com/stable/"
-tailscale_api_base_url: "https://api.github.com"
-tailscale_download_base_url: "https://pkgs.tailscale.com/stable"
+tailscale_base_url: https://pkgs.tailscale.com/stable/
+tailscale_api_base_url: https://api.github.com
+tailscale_download_base_url: https://pkgs.tailscale.com/stable
 
 # Force restart of Tailscale service
 tailscale_force_restart: false
 tailscale_force_reauth: false
 
 # Homebrew Configuration (fallback)
-tailscale_homebrew_tap: "tailscale/tap"
-tailscale_homebrew_package: "tailscale"
+tailscale_homebrew_tap: tailscale/tap
+tailscale_homebrew_package: tailscale
 
 # System Configuration
 tailscale_create_directories: true
@@ -74,4 +73,4 @@ tailscale_manage_firewall: false
 tailscale_backup_existing: true
 
 # Hostname configuration
-tailscale_hostname: "{{ ansible_hostname }}"
+tailscale_hostname: '{{ ansible_hostname }}'

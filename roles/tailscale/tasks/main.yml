@@ -1,14 +1,14 @@
----
 # Main tasks for Tailscale installation and configuration
 
 - name: Check if running on macOS
   ansible.builtin.fail:
-    msg: "This role is designed for macOS systems only"
+    msg: This role is designed for macOS systems only
   when: ansible_os_family != "Darwin"
 
 - name: Check macOS version compatibility
   ansible.builtin.fail:
-    msg: "macOS {{ ansible_distribution_version }} is not supported. Minimum required: {{ tailscale_min_macos_version }}"
+    msg: 'macOS {{ ansible_distribution_version }} is not supported. Minimum required:
+      {{ tailscale_min_macos_version }}'
   when: ansible_distribution_version not in tailscale_supported_versions
 
 - name: Include prerequisites tasks
@@ -16,21 +16,21 @@
 
 - name: Handle Tailscale installation state
   block:
-    - name: Include installation tasks
-      ansible.builtin.include_tasks: install.yml
-      when: tailscale_state == "present"
+  - name: Include installation tasks
+    ansible.builtin.include_tasks: install.yml
+    when: tailscale_state == "present"
 
-    - name: Include configuration tasks
-      ansible.builtin.include_tasks: configure.yml
-      when: tailscale_state == "present"
+  - name: Include configuration tasks
+    ansible.builtin.include_tasks: configure.yml
+    when: tailscale_state == "present"
 
-    - name: Include service management tasks
-      ansible.builtin.include_tasks: service.yml
-      when: tailscale_state == "present"
+  - name: Include service management tasks
+    ansible.builtin.include_tasks: service.yml
+    when: tailscale_state == "present"
   rescue:
-    - name: Include cleanup tasks on failure
-      ansible.builtin.include_tasks: cleanup.yml
-      when: tailscale_state == "present"
+  - name: Include cleanup tasks on failure
+    ansible.builtin.include_tasks: cleanup.yml
+    when: tailscale_state == "present"
 
 - name: Include removal tasks
   ansible.builtin.include_tasks: remove.yml

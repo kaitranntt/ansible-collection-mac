@@ -1,31 +1,38 @@
----
 extends: default
 
 rules:
   line-length:
     max: 120
-  truthy:
-    allowed-values: ['true', 'false', 'yes', 'no']
+  document-start:
+    present: false
+  comments-indentation: disable
   comments:
     min-spaces-from-content: 1
   braces:
-    min-spaces-inside: 0
     max-spaces-inside: 1
-  brackets:
-    min-spaces-inside: 0
-    max-spaces-inside: 1
-  colons:
-    max-spaces-before: 0
-    max-spaces-after: 1
-  commas:
-    max-spaces-before: 0
-    max-spaces-after: 1
   octal-values:
     forbid-implicit-octal: true
     forbid-explicit-octal: true
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off']
+    check-keys: false
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+  trailing-spaces: enable
+  new-line-at-end-of-file: enable
 
 ignore: |
   .git/
+  .molecule/
+  tests/molecule/**/created/
   *.tar.gz
   .pytest_cache/
-  .molecule/
+  .cache/
+  .venv/
+  venv/
+  __pycache__/
+  *.pyc
+  .coverage
+  htmlcov/

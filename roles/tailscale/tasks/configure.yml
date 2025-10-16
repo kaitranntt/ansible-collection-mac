@@ -1,22 +1,22 @@
----
 # Tailscale configuration tasks
 
 - name: Check Tailscale service status
   systemd:
-    name: "{{ tailscale_service_name }}"
+    name: '{{ tailscale_service_name }}'
   register: tailscale_service_status
   failed_when: false
   become: true
   tags:
-    - configure
-    - service_check
+  - configure
+  - service_check
 
 - name: Set fact for Tailscale running state
   set_fact:
-    tailscale_service_running: "{{ tailscale_service_status.status.ActiveState == 'active' }}"
+    tailscale_service_running: "{{ tailscale_service_status.status.ActiveState ==
+      'active' }}"
   tags:
-    - configure
-    - service_check
+  - configure
+  - service_check
 
 - name: Build Tailscale arguments from configuration
   set_fact:
@@ -31,7 +31,8 @@
         {%- set _ = args.append('--accept-dns=false') -%}
       {%- endif -%}
       {%- if tailscale_advertise_tags | length > 0 -%}
-        {%- set _ = args.append('--advertise-tags=' + tailscale_advertise_tags | join(',')) -%}
+        {%- set _ = args.append('--advertise-tags=' + tailscale_advertise_tags | join(','))
+      -%}
       {%- endif -%}
       {%- if tailscale_exit_node != '' -%}
         {%- set _ = args.append('--exit-node=' + tailscale_exit_node) -%}
@@ -53,16 +54,16 @@
       {%- endfor -%}
       {{ args | join(' ') }}
   tags:
-    - configure
-    - args_build
+  - configure
+  - args_build
 
 - name: Display built Tailscale arguments
   debug:
-    msg: "Tailscale arguments: {{ tailscale_built_args }}"
+    msg: 'Tailscale arguments: {{ tailscale_built_args }}'
   when: tailscale_built_args != ''
   tags:
-    - configure
-    - args_build
+  - configure
+  - args_build
 
 - name: Configure Tailscale with authentication key
   command: >-
@@ -75,12 +76,13 @@
     {%- endif -%}
   register: tailscale_configure_result
   failed_when: false
-  changed_when: tailscale_configure_result.rc != 0 or 'already configured' not in tailscale_configure_result.stderr | default('')
+  changed_when: tailscale_configure_result.rc != 0 or 'already configured' not 
+    in tailscale_configure_result.stderr | default('')
   when: tailscale_auth_key != ''
   become: true
   tags:
-    - configure
-    - auth
+  - configure
+  - auth
 
 - name: Configure Tailscale without authentication key
   command: >-
@@ -91,99 +93,104 @@
   register: tailscale_configure_no_auth_result
   failed_when: false
   changed_when: tailscale_configure_no_auth_result.rc != 0
-  when: 
-    - tailscale_auth_key == ''
-    - tailscale_service_running | bool
+  when:
+  - tailscale_auth_key == ''
+  - tailscale_service_running | bool
   become: true
   tags:
-    - configure
-    - no_auth
+  - configure
+  - no_auth
 
 - name: Handle authentication failure
   fail:
-    msg: "Tailscale authentication failed. Please check your auth key or login server configuration."
-  when: 
-    - tailscale_auth_key != ''
-    - tailscale_configure_result.rc != 0
-    - 'already configured' not in tailscale_configure_result.stderr | default('')
+    msg: Tailscale authentication failed. Please check your auth key or login 
+      server configuration.
+  when:
+  - tailscale_auth_key != ''
+  - tailscale_configure_result.rc != 0
+  - "'already configured' not in tailscale_configure_result.stderr | default('')"
   tags:
-    - configure
-    - auth
+  - configure
+  - auth
 
 - name: Display Tailscale configuration result
   debug:
-    msg: "Tailscale configuration completed successfully"
-  when: 
-    - (tailscale_auth_key != '' and tailscale_configure_result.rc == 0) or
-      (tailscale_auth_key == '' and tailscale_configure_no_auth_result is defined and tailscale_configure_no_auth_result.rc == 0)
+    msg: Tailscale configuration completed successfully
+  when:
+  - (tailscale_auth_key != '' and tailscale_configure_result.rc == 0) or 
+    (tailscale_auth_key == '' and tailscale_configure_no_auth_result is defined 
+    and tailscale_configure_no_auth_result.rc == 0)
   tags:
-    - configure
-    - status
+  - configure
+  - status
 
 - name: Wait for Tailscale to be ready
-  command: "{{ tailscale_binary_path }} status"
+  command: '{{ tailscale_binary_path }} status'
   register: tailscale_status_wait
-  until: tailscale_status_wait.rc == 0 and 'Connected:' in tailscale_status_wait.stdout
-  retries: "{{ tailscale_auth_timeout // 5 }}"
+  until: tailscale_status_wait.rc == 0 and 'Connected:' in 
+    tailscale_status_wait.stdout
+  retries: '{{ tailscale_auth_timeout // 5 }}'
   delay: 5
   when: tailscale_auth_key != ''
   changed_when: false
   tags:
-    - configure
-    - wait_ready
+  - configure
+  - wait_ready
 
 - name: Verify Tailscale is connected
-  command: "{{ tailscale_binary_path }} status"
+  command: '{{ tailscale_binary_path }} status'
   register: tailscale_verify_status
   failed_when: false
   changed_when: false
   tags:
-    - configure
-    - verify
+  - configure
+  - verify
 
 - name: Display Tailscale status
   debug:
     var: tailscale_verify_status.stdout_lines
   when: tailscale_verify_status.rc == 0
   tags:
-    - configure
-    - status
+  - configure
+  - status
 
 - name: Set up exit node routing
-  command: "{{ tailscale_binary_path }} up --exit-node={{ tailscale_exit_node }}"
+  command: '{{ tailscale_binary_path }} up --exit-node={{ tailscale_exit_node }}'
   register: tailscale_exit_node_setup
   failed_when: false
   changed_when: tailscale_exit_node_setup.rc == 0
-  when: 
-    - tailscale_exit_node != ''
-    - tailscale_verify_status.rc == 0
+  when:
+  - tailscale_exit_node != ''
+  - tailscale_verify_status.rc == 0
   become: true
   tags:
-    - configure
-    - exit_node
+  - configure
+  - exit_node
 
 - name: Configure SSH access
-  command: "{{ tailscale_binary_path }} up --ssh"
+  command: '{{ tailscale_binary_path }} up --ssh'
   register: tailscale_ssh_setup
   failed_when: false
   changed_when: tailscale_ssh_setup.rc == 0
-  when: 
-    - tailscale_ssh | bool
-    - tailscale_verify_status.rc == 0
+  when:
+  - tailscale_ssh | bool
+  - tailscale_verify_status.rc == 0
   become: true
   tags:
-    - configure
-    - ssh
+  - configure
+  - ssh
 
 - name: Configure advertising of routes
-  command: "{{ tailscale_binary_path }} up --advertise-routes={{ tailscale_advertise_routes | join(',') }}"
+  command: "{{ tailscale_binary_path }} up --advertise-routes={{ tailscale_advertise_routes
+    | join(',') }}"
   register: tailscale_advertise_routes_setup
   failed_when: false
   changed_when: tailscale_advertise_routes_setup.rc == 0
-  when: 
-    - tailscale_advertise_routes is defined and tailscale_advertise_routes | length > 0
-    - tailscale_verify_status.rc == 0
+  when:
+  - tailscale_advertise_routes is defined and tailscale_advertise_routes | 
+    length > 0
+  - tailscale_verify_status.rc == 0
   become: true
   tags:
-    - configure
-    - advertise_routes
+  - configure
+  - advertise_routes

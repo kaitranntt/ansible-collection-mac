@@ -131,6 +131,7 @@ dmypy.json
 # Ansible specific
 *.retry
 *.tar.gz
+.ansible/
 
 # Molecule
 .molecule/
@@ -156,3 +157,4 @@ Thumbs.db
 *.temp
 temp/
 tmp/
+security-report.json

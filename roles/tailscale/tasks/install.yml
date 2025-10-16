@@ -1,4 +1,3 @@
----
 # Tailscale installation tasks
 
 - name: Skip installation if Tailscale is up to date
@@ -10,80 +9,80 @@
 
 - name: Download Tailscale
   ansible.builtin.get_url:
-    url: "{{ tailscale_download_url }}"
-    dest: "{{ tailscale_temp_dir }}/tailscale.zip"
+    url: '{{ tailscale_download_url }}'
+    dest: '{{ tailscale_temp_dir }}/tailscale.zip'
     mode: '0644'
-    timeout: "{{ tailscale_timeout }}"
+    timeout: '{{ tailscale_timeout }}'
   register: tailscale_download
 
 - name: Extract Tailscale archive
   ansible.builtin.unarchive:
-    src: "{{ tailscale_temp_dir }}/tailscale.zip"
-    dest: "{{ tailscale_temp_dir }}"
+    src: '{{ tailscale_temp_dir }}/tailscale.zip'
+    dest: '{{ tailscale_temp_dir }}'
     remote_src: true
   register: tailscale_extract
 
 - name: Find Tailscale binary files
   ansible.builtin.find:
-    paths: "{{ tailscale_temp_dir }}"
+    paths: '{{ tailscale_temp_dir }}'
     patterns:
-      - "tailscale"
-      - "tailscaled"
+    - tailscale
+    - tailscaled
     file_type: file
   register: tailscale_binaries
 
 - name: Install Tailscale binaries
   ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ tailscale_install_dir }}/{{ item.path | basename }}"
+    src: '{{ item.path }}'
+    dest: '{{ tailscale_install_dir }}/{{ item.path | basename }}'
     mode: '0755'
     remote_src: true
   become: true
-  loop: "{{ tailscale_binaries.files }}"
+  loop: '{{ tailscale_binaries.files }}'
   notify:
-    - restart tailscale
+  - restart tailscale
 
 - name: Create Tailscale socket directory
   ansible.builtin.file:
-    path: "{{ tailscale_socket_path | dirname }}"
+    path: '{{ tailscale_socket_path | dirname }}'
     state: directory
     mode: '0755'
-    owner: "{{ tailscale_user }}"
-    group: "{{ tailscale_user }}"
+    owner: '{{ tailscale_user }}'
+    group: '{{ tailscale_user }}'
   become: true
 
 - name: Create Tailscale log directory
   ansible.builtin.file:
-    path: "{{ tailscale_log_file | dirname }}"
+    path: '{{ tailscale_log_file | dirname }}'
     state: directory
     mode: '0755'
-    owner: "{{ tailscale_user }}"
-    group: "{{ tailscale_user }}"
+    owner: '{{ tailscale_user }}'
+    group: '{{ tailscale_user }}'
   become: true
 
 - name: Install Tailscale LaunchDaemon plist
   ansible.builtin.template:
-    src: "{{ tailscale_service_plist_template }}"
-    dest: "{{ tailscale_service_plist_path }}"
+    src: '{{ tailscale_service_plist_template }}'
+    dest: '{{ tailscale_service_plist_path }}'
     mode: '0644'
     owner: root
     group: wheel
   become: true
   notify:
-    - restart tailscale
-    - load tailscale service
+  - restart tailscale
+  - load tailscale service
 
 - name: Verify Tailscale installation
   ansible.builtin.stat:
-    path: "{{ tailscale_cli_path }}"
+    path: '{{ tailscale_cli_path }}'
   register: tailscale_cli_stat
 
 - name: Verify Tailscaled installation
   ansible.builtin.stat:
-    path: "{{ tailscale_daemon_path }}"
+    path: '{{ tailscale_daemon_path }}'
   register: tailscale_daemon_stat
 
 - name: Confirm successful installation
   ansible.builtin.debug:
-    msg: "Tailscale binaries installed successfully"
+    msg: Tailscale binaries installed successfully
   when: tailscale_cli_stat.stat.exists and tailscale_daemon_stat.stat.exists

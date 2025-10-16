@@ -1,0 +1,45 @@
+- name: Prepare
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+  - name: Check system information
+    ansible.builtin.debug:
+      msg: Running on {{ ansible_distribution }} {{ ansible_distribution_version
+        }}
+
+  - name: Check if running as root
+    ansible.builtin.fail:
+      msg: This test must be run with sudo/administrative privileges
+    when: ansible_user_uid != 0
+
+  - name: Update apt package cache (Ubuntu/Debian)
+    ansible.builtin.apt:
+      update_cache: yes
+      cache_valid_time: 3600
+    when: ansible_os_family == "Debian"
+
+  - name: Install required system packages
+    ansible.builtin.package:
+      name:
+      - curl
+      - wget
+      - unzip
+      - gpg
+      state: present
+
+  - name: Ensure /usr/local/bin exists
+    ansible.builtin.file:
+      path: /usr/local/bin
+      state: directory
+      mode: '0755'
+
+  - name: Clean up any existing Tailscale installation
+    ansible.builtin.include_tasks:
+      file: ../destroy.yml
+    when: cleanup_existing | default(false)
+
+  - name: Display test preparation completion
+    ansible.builtin.debug:
+      msg: Test preparation completed

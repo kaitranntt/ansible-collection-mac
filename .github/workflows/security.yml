@@ -1,0 +1,74 @@
+name: Security Scanning
+
+on:
+  schedule:
+  - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM UTC
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety checkov
+
+    - name: Run Bandit security scan
+      run: |
+        bandit -r roles/ plugins/ -f json -o bandit-report.json || true
+        bandit -r roles/ plugins/ -f txt -o bandit-report.txt || true
+
+    - name: Run Safety dependency scan
+      run: |
+        safety check -r requirements-dev.txt --json --output safety-report.json || true
+        safety check -r requirements-dev.txt --text --output safety-report.txt || true
+
+    - name: Run Checkov security scan
+      run: |
+        checkov --framework ansible --directory . --output junit-xml > checkov-report.xml || true
+        checkov --framework ansible --directory . --output json > checkov-report.json || true
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+          bandit-report.txt
+          safety-report.json
+          safety-report.txt
+          checkov-report.xml
+          checkov-report.json
+
+    - name: Security scan summary
+      if: always()
+      run: |
+        echo "## Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+
+        if [ -f bandit-report.json ]; then
+          echo "### Bandit Results" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat bandit-report.json | head -20 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
+
+        if [ -f safety-report.txt ]; then
+          echo "### Dependency Security" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat safety-report.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi

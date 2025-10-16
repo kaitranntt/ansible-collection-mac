@@ -1,0 +1,10 @@
+# Skip rules that generate false positives for our environment
+skip-check:
+- CKV_SECRET_10   # Generic secret (may be false positives)
+# Logging configuration
+log-level: INFO
+
+# Custom policies directory
+policy-metadata:
+  checkov:
+    version: 3.2.484
