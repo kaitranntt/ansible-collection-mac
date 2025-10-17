@@ -1,7 +1,7 @@
 # Handlers for Tailscale role
 
 - name: restart tailscale
-  ansible.builtin.command: launchctl kickstart -k 
+  ansible.builtin.command: launchctl kickstart -k
     system/com.tailscale.tailscaled
   become: true
   changed_when: false

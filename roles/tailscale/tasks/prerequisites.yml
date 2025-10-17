@@ -71,7 +71,7 @@
     - tailscale_installation_method in ['go', 'binary', 'homebrew']
     fail_msg: 'Invalid installation method: {{ tailscale_installation_method }}. Must
       be one of: go, binary, homebrew'
-    success_msg: Installation method {{ tailscale_installation_method }} is 
+    success_msg: Installation method {{ tailscale_installation_method }} is
       valid
   tags:
   - prerequisites
@@ -127,9 +127,9 @@
 - name: Validate network connectivity
   assert:
     that:
-    - tailscale_github_connectivity.status == 200 or 
+    - tailscale_github_connectivity.status == 200 or
       tailscale_download_connectivity.status == 200
-    fail_msg: Cannot connect to Tailscale download servers. Please check your 
+    fail_msg: Cannot connect to Tailscale download servers. Please check your
       internet connection.
     success_msg: Network connectivity to Tailscale servers verified
   tags:
@@ -180,7 +180,7 @@
 
 - name: Skip installation if Tailscale is up to date
   debug:
-    msg: Tailscale {{ tailscale_current_version_string }} is already installed 
+    msg: Tailscale {{ tailscale_current_version_string }} is already installed
       and up to date
   when:
   - tailscale_is_installed | bool

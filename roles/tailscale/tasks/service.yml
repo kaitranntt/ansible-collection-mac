@@ -45,7 +45,7 @@
   when: tailscale_start_service
 
 - name: Force restart Tailscale if requested
-  ansible.builtin.command: launchctl kickstart -k 
+  ansible.builtin.command: launchctl kickstart -k
     system/com.tailscale.tailscaled
   become: true
   register: tailscale_force_restart_result

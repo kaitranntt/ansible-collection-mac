@@ -16,7 +16,7 @@ tailscale_install_dir: /usr/local/bin
 tailscale_daemon_path: /usr/local/bin/tailscaled
 
 # macOS service paths
-tailscale_service_plist_path: 
+tailscale_service_plist_path:
   /Library/LaunchDaemons/com.tailscale.tailscaled.plist
 tailscale_service_plist_template: com.tailscale.tailscaled.plist.j2
 

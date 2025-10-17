@@ -53,7 +53,7 @@
   - name: Verify service is running (Linux)
     ansible.builtin.assert:
       that:
-      - tailscale_service_linux.status is defined and 
+      - tailscale_service_linux.status is defined and
         tailscale_service_linux.status.ActiveState == "active"
       fail_msg: Tailscale service is not running on Linux
       success_msg: Tailscale service is running on Linux
