@@ -2,7 +2,7 @@ name: macOS Docker Testing
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
       - 'roles/tailscale/**'
       - 'tests/molecule/macos*/**'
@@ -10,7 +10,7 @@ on:
       - 'docker-compose.test.yml'
       - '.github/workflows/test-macos-docker.yml'
   pull_request:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'roles/tailscale/**'
       - 'tests/molecule/macos*/**'
@@ -61,7 +61,7 @@ jobs:
       cache-key: ${{ steps.cache-key.outputs.key }}
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Determine test execution
@@ -104,7 +104,7 @@ jobs:
         scenario: [macos]
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -176,7 +176,8 @@ jobs:
     - name: Create test artifacts directory
       run: |
         mkdir -p test-artifacts
-        echo "TEST_ID=$(date +%Y%m%d_%H%M%S)_github_${{ github.run_number }}_${{ github.sha }}" >> test-artifacts/test-env.sh
+        echo "TEST_ID=$(date +%Y%m%d_%H%M%S)_github_${{ github.run_number }}_${{ github.sha }}" \
+          >> test-artifacts/test-env.sh
 
     - name: Load test environment
       run: source test-artifacts/test-env.sh
@@ -304,7 +305,9 @@ jobs:
     needs: [setup, test-basic]
     if: |
       needs.setup.outputs.should-run-tests == 'true' &&
-      (needs.setup.outputs.test-matrix == 'all' || needs.setup.outputs.test-matrix == 'installation' || github.event_name == 'schedule')
+      (needs.setup.outputs.test-matrix == 'all' ||
+       needs.setup.outputs.test-matrix == 'installation' ||
+       github.event_name == 'schedule')
 
     strategy:
       fail-fast: false
@@ -312,7 +315,7 @@ jobs:
         method: [go, binary, homebrew]
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -375,10 +378,12 @@ jobs:
     needs: [setup, test-basic]
     if: |
       needs.setup.outputs.should-run-tests == 'true' &&
-      (needs.setup.outputs.test-matrix == 'all' || needs.setup.outputs.test-matrix == 'network' || github.event_name == 'schedule')
+      (needs.setup.outputs.test-matrix == 'all' ||
+       needs.setup.outputs.test-matrix == 'network' ||
+       github.event_name == 'schedule')
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -441,10 +446,12 @@ jobs:
     needs: [setup, test-basic]
     if: |
       needs.setup.outputs.should-run-tests == 'true' &&
-      (needs.setup.outputs.test-matrix == 'all' || needs.setup.outputs.test-matrix == 'matrix' || github.event_name == 'schedule')
+      (needs.setup.outputs.test-matrix == 'all' ||
+       needs.setup.outputs.test-matrix == 'matrix' ||
+       github.event_name == 'schedule')
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
@@ -507,10 +514,12 @@ jobs:
     needs: [setup, test-basic]
     if: |
       needs.setup.outputs.should-run-tests == 'true' &&
-      (needs.setup.outputs.test-matrix == 'all' || needs.setup.outputs.test-matrix == 'errors' || github.event_name == 'schedule')
+      (needs.setup.outputs.test-matrix == 'all' ||
+       needs.setup.outputs.test-matrix == 'errors' ||
+       github.event_name == 'schedule')
 
     steps:
-    - name: Checkout code
+      - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Set up Python
