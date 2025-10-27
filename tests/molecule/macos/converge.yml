@@ -48,6 +48,7 @@
       command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} version"
       register: tailscale_version
       when: tailscale_binary.stat.exists
+      changed_when: false
 
     - name: Record Tailscale installation details
       copy:
@@ -63,6 +64,7 @@
       command: "{{ tailscale_binary_path | default('/usr/local/bin/tailscale') }} status"
       register: tailscale_status
       failed_when: false
+      changed_when: false
       when: tailscale_binary.stat.exists
 
     - name: Record Tailscale status

@@ -62,34 +62,34 @@ jobs:
 
     steps:
       - name: Checkout code
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
-    - name: Determine test execution
-      id: decision
-      run: |
-        if [[ "${{ github.event_name }}" == "schedule" ]]; then
-          echo "should-run-tests=true" >> $GITHUB_OUTPUT
-          echo "test-matrix=all" >> $GITHUB_OUTPUT
-        elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-          echo "should-run-tests=true" >> $GITHUB_OUTPUT
-          echo "test-matrix=${{ github.event.inputs.test_scenario || 'all' }}" >> $GITHUB_OUTPUT
-        elif [[ "${{ github.event_name }}" == "push" ]]; then
-          # Check if core files were changed
-          if git diff --name-only HEAD~1 HEAD | grep -E "(roles/tailscale|tests/molecule/macos|docker-compose)"; then
+      - name: Determine test execution
+        id: decision
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            echo "should-run-tests=true" >> $GITHUB_OUTPUT
+            echo "test-matrix=all" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "should-run-tests=true" >> $GITHUB_OUTPUT
+            echo "test-matrix=${{ github.event.inputs.test_scenario || 'all' }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            # Check if core files were changed
+            if git diff --name-only HEAD~1 HEAD | grep -E "(roles/tailscale|tests/molecule/macos|docker-compose)"; then
+              echo "should-run-tests=true" >> $GITHUB_OUTPUT
+              echo "test-matrix=basic" >> $GITHUB_OUTPUT
+            else
+              echo "should-run-tests=false" >> $GITHUB_OUTPUT
+            fi
+          else
             echo "should-run-tests=true" >> $GITHUB_OUTPUT
             echo "test-matrix=basic" >> $GITHUB_OUTPUT
-          else
-            echo "should-run-tests=false" >> $GITHUB_OUTPUT
           fi
-        else
-          echo "should-run-tests=true" >> $GITHUB_OUTPUT
-          echo "test-matrix=basic" >> $GITHUB_OUTPUT
-        fi
 
-    - name: Generate cache key
-      id: cache-key
-      run: |
-        echo "key=macos-test-${{ runner.os }}-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "key=macos-test-${{ runner.os }}-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
 
   # Basic macOS container tests
   test-basic:
@@ -105,82 +105,82 @@ jobs:
 
     steps:
       - name: Checkout code
-      uses: actions/checkout@v4
+        uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
 
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ needs.setup.outputs.cache-key }}-pip
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ needs.setup.outputs.cache-key }}-pip
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          docker-compose \
-          jq \
-          curl \
-          netcat \
-          xvfb \
-          libnss3-dev \
-          libatk-bridge2.0-dev \
-          libdrm2 \
-          libxkbcommon0 \
-          libxcomposite1 \
-          libxdamage1 \
-          libxrandr2 \
-          libgbm1 \
-          libxss1 \
-          libasound2
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            docker-compose \
+            jq \
+            curl \
+            netcat \
+            xvfb \
+            libnss3-dev \
+            libatk-bridge2.0-dev \
+            libdrm2 \
+            libxkbcommon0 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libgbm1 \
+            libxss1 \
+            libasound2
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install ansible molecule molecule-plugins[docker] docker-compose pytest-testinfra
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible molecule molecule-plugins[docker] docker-compose pytest-testinfra
 
-    - name: Check system requirements
-      run: |
-        echo "=== System Information ==="
-        uname -a
-        docker --version
-        docker-compose --version
-        python --version
-        ansible --version
-        molecule --version
+      - name: Check system requirements
+        run: |
+          echo "=== System Information ==="
+          uname -a
+          docker --version
+          docker-compose --version
+          python --version
+          ansible --version
+          molecule --version
 
-        echo "=== Docker System Info ==="
-        docker system info
-        docker system df
+          echo "=== Docker System Info ==="
+          docker system info
+          docker system df
 
-        echo "=== Check KVM Support ==="
-        if [[ -e /dev/kvm ]]; then
-          echo "✅ KVM device available"
-          ls -la /dev/kvm
-        else
-          echo "⚠️  KVM device not available (expected in GitHub Actions)"
-        fi
+          echo "=== Check KVM Support ==="
+          if [[ -e /dev/kvm ]]; then
+            echo "✅ KVM device available"
+            ls -la /dev/kvm
+          else
+            echo "⚠️  KVM device not available (expected in GitHub Actions)"
+          fi
 
-    - name: Make scripts executable
-      run: |
-        chmod +x scripts/*.sh
-        chmod +x scripts/*.py
+      - name: Make scripts executable
+        run: |
+          chmod +x scripts/*.sh
+          chmod +x scripts/*.py
 
     - name: Create test artifacts directory
-      run: |
-        mkdir -p test-artifacts
-        echo "TEST_ID=$(date +%Y%m%d_%H%M%S)_github_${{ github.run_number }}_${{ github.sha }}" \
-          >> test-artifacts/test-env.sh
+        run: |
+          mkdir -p test-artifacts
+          echo "TEST_ID=$(date +%Y%m%d_%H%M%S)_github_${{ github.run_number }}_${{ github.sha }}" \
+            >> test-artifacts/test-env.sh
 
     - name: Load test environment
-      run: source test-artifacts/test-env.sh
+        run: source test-artifacts/test-env.sh
 
     - name: Start macOS container
       run: |

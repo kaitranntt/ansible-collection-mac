@@ -5,40 +5,40 @@ dependency:
 driver:
   name: docker
 platforms:
-- name: macos-test
-  image: dockurr/macos
-  pre_build_image: true
-  groups:
-  - macos
-  - all
-  environment:
-    ANSIBLE_HOST_KEY_CHECKING: 'False'
-    PY_COLORS: '1'
-  devices:
-  - /dev/kvm
-  - /dev/net/tun
-  cap_add:
-  - NET_ADMIN
-  - SYS_ADMIN
-  ports:
-  - "8006:8006"
-  - "5900:5900"
-  - "2222:22"
-  volumes:
-  - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  - ../../test-artifacts:/storage
-  - ../../scripts:/workspace/scripts:ro
-  privileged: true
-  timeout: 1800  # 30 minutes
-  command: /bin/bash -c "sleep infinity"
-  networks:
-  - name: macos-test-net
-  healthcheck:
-    test: ["CMD", "curl", "-f", "http://localhost:8006"]
-    interval: 30s
-    timeout: 10s
-    retries: 10
-    start_period: 300s
+  - name: macos-test
+    image: dockurr/macos
+    pre_build_image: true
+    groups:
+      - macos
+      - all
+    environment:
+      ANSIBLE_HOST_KEY_CHECKING: 'False'
+      PY_COLORS: '1'
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    ports:
+      - "8006:8006"
+      - "5900:5900"
+      - "2222:22"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - ../../test-artifacts:/storage
+      - ../../scripts:/workspace/scripts:ro
+    privileged: true
+    timeout: 1800  # 30 minutes
+    command: /bin/bash -c "sleep infinity"
+    networks:
+      - name: macos-test-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
 
 provisioner:
   name: ansible

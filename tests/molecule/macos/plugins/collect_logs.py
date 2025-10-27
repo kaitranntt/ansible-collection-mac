@@ -5,7 +5,6 @@ Molecule plugin for collecting logs and artifacts from macOS tests.
 """
 
 import json
-import os
 import subprocess
 import sys
 from datetime import datetime

@@ -62,7 +62,6 @@ class QualityMetricsCollector:
                     continue
 
                 file_path = Path(root) / file
-                relative_path = file_path.relative_to(self.project_root)
 
                 try:
                     with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -509,6 +508,23 @@ class QualityMetricsCollector:
         security = self.metrics["metrics"]["security"]
         docs = self.metrics["metrics"]["documentation"]
 
+        # Calculate contributions for report
+        code_contrib = round(
+            overall["components"]["code_quality"]["score"] * overall["components"]["code_quality"]["weight"] / 100, 1
+        )
+        test_contrib = round(
+            overall["components"]["test_coverage"]["score"] * overall["components"]["test_coverage"]["weight"] / 100, 1
+        )
+        security_contrib = round(
+            overall["components"]["security_posture"]["score"]
+            * overall["components"]["security_posture"]["weight"]
+            / 100,
+            1,
+        )
+        docs_contrib = round(
+            overall["components"]["documentation"]["score"] * overall["components"]["documentation"]["weight"] / 100, 1
+        )
+
         report_content = f"""# Quality Metrics Report
 
 **Generated**: {self.metrics['timestamp']}
@@ -518,16 +534,21 @@ class QualityMetricsCollector:
 
 ### Overall Quality Grade: {overall['grade']} ({overall['overall_score']}/100)
 
-{self._get_quality_emoji(overall['overall_score'])} The project demonstrates {'excellent' if overall['overall_score'] >= 90 else 'good' if overall['overall_score'] >= 80 else 'acceptable' if overall['overall_score'] >= 70 else 'needs improvement'} quality standards.
+{self._get_quality_emoji(overall['overall_score'])} The project demonstrates {{
+    'excellent' if overall['overall_score'] >= 90
+    else 'good' if overall['overall_score'] >= 80
+    else 'acceptable' if overall['overall_score'] >= 70
+    else 'needs improvement'
+}} quality standards.
 
 ### Component Scores
 
 | Component | Score | Weight | Contribution |
 |-----------|-------|--------|--------------|
-| Code Quality | {overall['components']['code_quality']['score']}/100 | {overall['components']['code_quality']['weight']}% | {round(overall['components']['code_quality']['score'] * overall['components']['code_quality']['weight'] / 100, 1)} |
-| Test Coverage | {overall['components']['test_coverage']['score']}/100 | {overall['components']['test_coverage']['weight']}% | {round(overall['components']['test_coverage']['score'] * overall['components']['test_coverage']['weight'] / 100, 1)} |
-| Security Posture | {overall['components']['security_posture']['score']}/100 | {overall['components']['security_posture']['weight']}% | {round(overall['components']['security_posture']['score'] * overall['components']['security_posture']['weight'] / 100, 1)} |
-| Documentation | {overall['components']['documentation']['score']}/100 | {overall['components']['documentation']['weight']}% | {round(overall['components']['documentation']['score'] * overall['components']['documentation']['weight'] / 100, 1)} |
+| Code Quality | {overall['components']['code_quality']['score']}/100 | {overall['components']['code_quality']['weight']}% | {code_contrib} |
+| Test Coverage | {overall['components']['test_coverage']['score']}/100 | {overall['components']['test_coverage']['weight']}% | {test_contrib} |
+| Security Posture | {overall['components']['security_posture']['score']}/100 | {overall['components']['security_posture']['weight']}% | {security_contrib} |
+| Documentation | {overall['components']['documentation']['score']}/100 | {overall['components']['documentation']['weight']}% | {docs_contrib} |
 
 ## Detailed Metrics
 
@@ -600,7 +621,8 @@ class QualityMetricsCollector:
 
 ---
 
-*This report was generated automatically using the quality metrics collection script. For questions about these metrics, see the project documentation or contact the maintainers.*
+*This report was generated automatically using the quality metrics collection script.
+For questions about these metrics, see the project documentation or contact the maintainers.*
 """
 
         with open(output_path, "w") as f:
@@ -627,9 +649,8 @@ class QualityMetricsCollector:
         # Test recommendations
         if tests["ansible_lint"]["status"] == "failed":
             recommendations.append(
-                "1. **Fix Ansible Lint Issues**: Address the {} ansible-lint violations to improve code quality.".format(
-                    tests["ansible_lint"]["issues"]
-                )
+                "1. **Fix Ansible Lint Issues**: Address the {} ansible-lint violations "
+                "to improve code quality.".format(tests["ansible_lint"]["issues"])
             )
 
         if tests["yamllint"]["status"] == "failed":
@@ -647,7 +668,8 @@ class QualityMetricsCollector:
         # Security recommendations
         if security["overall_score"] < 90:
             recommendations.append(
-                "4. **Improve Security Posture**: Address the identified security vulnerabilities to improve the security score."
+                "4. **Improve Security Posture**: Address the identified security "
+                "vulnerabilities to improve the security score."
             )
 
         # Documentation recommendations
@@ -661,7 +683,8 @@ class QualityMetricsCollector:
 
         if not recommendations:
             recommendations.append(
-                "🎉 **Excellent Work**: No immediate improvements needed - continue maintaining current quality standards!"
+                "🎉 **Excellent Work**: No immediate improvements needed - "
+                "continue maintaining current quality standards!"
             )
 
         return "\n\n".join(recommendations)
@@ -694,9 +717,10 @@ def main():
 
         if not args.quiet:
             print(
-                f"\n🎯 Quality Score: {report['metrics']['overall_score']['grade']} ({report['metrics']['overall_score']['overall_score']}/100)"
+                f"\n🎯 Quality Score: {report['metrics']['overall_score']['grade']} "
+                f"({report['metrics']['overall_score']['overall_score']}/100)"
             )
-            print(f"📊 Component Scores:")
+            print("📊 Component Scores:")
             for component, data in report["metrics"]["overall_score"]["components"].items():
                 print(f"   - {component.title()}: {data['score']}/100")
 

@@ -7,13 +7,10 @@ Advanced analysis of collected test logs with pattern detection and insights.
 
 import argparse
 import json
-import os
 import re
-import sys
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 
 class LogAnalyzer:
@@ -424,7 +421,10 @@ class LogAnalyzer:
                 {
                     "priority": "high",
                     "category": "errors",
-                    "message": f"High number of errors detected ({total_errors}). Review error patterns and fix underlying issues.",
+                    "message": (
+                        f"High number of errors detected ({total_errors}). "
+                        "Review error patterns and fix underlying issues."
+                    ),
                     "action": "Investigate error patterns in log analysis",
                 }
             )
@@ -436,7 +436,10 @@ class LogAnalyzer:
                 {
                     "priority": "medium",
                     "category": "container",
-                    "message": f"Container issues detected ({container_errors}). Check container configuration and resources.",
+                    "message": (
+                        f"Container issues detected ({container_errors}). "
+                        "Check container configuration and resources."
+                    ),
                     "action": "Review container logs and resource allocation",
                 }
             )
@@ -448,7 +451,10 @@ class LogAnalyzer:
                 {
                     "priority": "medium",
                     "category": "tailscale",
-                    "message": f"Tailscale issues detected ({tailscale_errors}). Verify authentication and network configuration.",
+                    "message": (
+                        f"Tailscale issues detected ({tailscale_errors}). "
+                        "Verify authentication and network configuration."
+                    ),
                     "action": "Check Tailscale status and configuration",
                 }
             )
@@ -460,7 +466,10 @@ class LogAnalyzer:
                 {
                     "priority": "high",
                     "category": "testing",
-                    "message": f"Test failures detected ({molecule_errors}). Review test configuration and role implementation.",
+                    "message": (
+                        f"Test failures detected ({molecule_errors}). "
+                        "Review test configuration and role implementation."
+                    ),
                     "action": "Debug Molecule test failures",
                 }
             )

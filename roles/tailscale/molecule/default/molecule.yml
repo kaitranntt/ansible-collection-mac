@@ -3,17 +3,17 @@ dependency:
 driver:
   name: docker
 platforms:
-- name: instance
-  image: ubuntu:22.04
-  pre_build_image: true
-  groups:
-  - all
-  command: /bin/bash -c "sleep infinity"
-  environment:
-    ANSIBLE_HOST_KEY_CHECKING: 'False'
-  volumes:
-  - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  privileged: true
+  - name: instance
+    image: ubuntu:22.04
+    pre_build_image: true
+    groups:
+      - all
+    command: /bin/bash -c "sleep infinity"
+    environment:
+      ANSIBLE_HOST_KEY_CHECKING: 'False'
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
 provisioner:
   name: ansible
   inventory:
@@ -29,10 +29,10 @@ verifier:
 scenario:
   name: default
   test_sequence:
-  - dependency
-  - syntax
-  - create
-  - prepare
-  - converge
-  - verify
-  - destroy
+    - dependency
+    - syntax
+    - create
+    - prepare
+    - converge
+    - verify
+    - destroy

@@ -22,6 +22,7 @@
     command: which brew
     register: homebrew_check
     failed_when: false
+    changed_when: false
 
   - name: Record Homebrew availability
     copy:
@@ -44,6 +45,7 @@
         command: brew list tailscale
         register: tailscale_brew_list
         failed_when: false
+        changed_when: false
 
       - name: Check if Tailscale binary exists
         stat:
@@ -64,6 +66,7 @@
         register: tailscale_version
         when: tailscale_binary_path != ""
         failed_when: tailscale_version.rc != 0
+        changed_when: false
 
       - name: Record successful installation
         copy:
@@ -104,6 +107,7 @@
         register: tailscale_status
         failed_when: false
         when: tailscale_binary_path != ""
+        changed_when: false
         no_log: true  # May contain sensitive network info
 
       - name: Test Tailscale command help
@@ -111,6 +115,7 @@
         register: tailscale_help
         failed_when: tailscale_help.rc != 0
         when: tailscale_binary_path != ""
+        changed_when: false
 
       - name: Record functionality test results
         copy:
